@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Env & secrets
+.env
+.env.local
+*.pem
+*.key
+token.txt
+
+# Database (SQLite) — jangan commit
+*.db
+*.db-journal
+*.sqlite*
+prisma/*.db*
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Vite / logs
+frontend/dist/
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

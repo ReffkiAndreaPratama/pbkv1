@@ -1,0 +1,29 @@
+{
+  "name": "techtutor",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TechTutor - Platform pembelajaran adaptif Troubleshooting IT",
+  "scripts": {
+    "setup": "npm --prefix backend install && npm --prefix frontend install && npm --prefix backend run db:setup",
+    "dev": "concurrently -n backend,frontend -c blue,green \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "build": "npm --prefix backend run build && npm --prefix frontend run build",
+    "start": "npm --prefix backend run start",
+    "db": "npm --prefix backend run db:setup",
+    "seed": "npm --prefix backend run db:seed",
+    "typecheck": "npm --prefix backend run build && tsc -b frontend/tsconfig.json",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.14.0",
+    "@types/eslint__js": "^8.42.3",
+    "concurrently": "^9.1.0",
+    "eslint": "^9.14.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.13.0",
+    "vitest": "^2.1.8"
+  }
+}
