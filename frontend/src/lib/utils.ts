@@ -54,6 +54,19 @@ export function tierColor(tier: string): string {
   return map[tier] ?? "bg-muted text-muted-foreground";
 }
 
+export function tierStatusClass(tier: string): string {
+  const map: Record<string, string> = {
+    NOVICE: "status-needs-practice",
+    DEVELOPING: "status-developing",
+    PROFICIENT: "status-mastered",
+  };
+  return map[tier] ?? "status-needs-practice";
+}
+
+export function dateChip(): string {
+  return new Intl.DateTimeFormat("id-ID", { weekday: "long", day: "numeric", month: "short", year: "numeric" }).format(new Date());
+}
+
 export function difficultyLabel(d: string): string {
   const map: Record<string, string> = {
     EASY: "Mudah",

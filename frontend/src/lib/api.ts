@@ -1,6 +1,16 @@
 export const TOKEN_KEY = "techtutor_token";
 export const USER_KEY = "techtutor_user";
 
+// Di dev, "/api" di-proxy Vite ke backend (:5000). Di produksi (build/preview/PWA),
+// request harus menuju backend langsung — bisa diset lewat VITE_API_BASE saat build.
+const API_BASE: string =
+  (import.meta.env.VITE_API_BASE as string | undefined) ?? (import.meta.env.PROD ? "http://localhost:5000" : "/api");
+
+export function apiUrl(path: string): string {
+  if (!path.startsWith("/api")) return path;
+  return API_BASE === "/api" ? path : `${API_BASE}${path}`;
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -19,6 +29,7 @@ export interface SessionUser {
   email: string;
   name: string;
   role: "USER" | "ADMIN";
+  createdAt?: string;
   profile?: {
     level: number;
     totalXp: number;
@@ -62,7 +73,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   try {
-    const res = await fetch(path, { ...options, headers });
+    const res = await fetch(apiUrl(path), { ...options, headers });
     if (res.status === 401) {
       clearToken();
       window.dispatchEvent(new Event("techtutor:unauthorized"));

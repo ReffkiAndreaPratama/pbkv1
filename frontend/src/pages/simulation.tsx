@@ -6,14 +6,12 @@ import {
   Terminal,
   CircleCheck,
   CircleX,
-  XCircle,
-  Clock,
   Star,
-  Signal,
   RotateCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -22,6 +20,7 @@ import type { SimNode, SimSubmitResponse, SimResult, CaseOption } from "@/lib/ty
 
 interface AttemptLoad {
   status: string;
+  caseTitle?: string;
   currentNode: SimNode;
   signalState: Record<string, string | boolean | number>;
 }
@@ -43,6 +42,9 @@ export function SimulationPage() {
   const [hintCount, setHintCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [moves, setMoves] = useState(0);
+  const [caseTitle, setCaseTitle] = useState("Simulasi Kasus");
+
+  useLeaveGuard(!loading && result === null);
 
   const timerStart = useRef<number>(Date.now());
 
@@ -56,6 +58,7 @@ export function SimulationPage() {
       }
       setNode(res.currentNode);
       setSignals(res.signalState ?? {});
+      setCaseTitle(res.caseTitle ?? "Simulasi Kasus");
       timerStart.current = Date.now();
     } catch (e: any) {
       setError(e.message || "Gagal memuat simulasi.");
@@ -144,17 +147,32 @@ export function SimulationPage() {
 
   return (
     <div className="animate-fade-in">
-      {/* Top bar */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <Button asChild variant="ghost" size="sm" onClick={() => { void abandon(); }}>
-          <Link to="/cases">
-            <ArrowLeft className="h-4 w-4" /> Keluar
-          </Link>
-        </Button>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="gap-1"><Clock className="h-3 w-3" /> {formatTime(elapsed)}</Badge>
-          <Badge variant="info" className="gap-1"><Signal className="h-3 w-3" /> {moves} langkah</Badge>
-          <Badge variant="warning" className="gap-1"><Lightbulb className="h-3 w-3" /> {hintCount} hint</Badge>
+      {/* Mission HUD */}
+      <div className="mb-4">
+        <div className="mb-3 flex items-center justify-between">
+          <Button asChild variant="ghost" size="sm" onClick={() => { void abandon(); }}>
+            <Link to="/cases">
+              <ArrowLeft className="h-4 w-4" /> Keluar
+            </Link>
+          </Button>
+          <span className="flex items-center gap-1.5 font-mono-tech text-[10px] font-bold tracking-widest text-emerald-600">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden /> SIMULASI BERJALAN
+          </span>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 text-white shadow-lift">
+          <div className="flex items-center justify-between gap-3 border-b border-white/10 bg-slate-950/50 px-4 py-2.5">
+            <span className="flex items-center gap-2 font-mono-tech text-[10px] font-bold tracking-[0.2em] text-sky-300">
+              <Terminal className="h-3.5 w-3.5" /> MISI
+            </span>
+            <span className="truncate font-mono-tech text-sm font-bold">{caseTitle}</span>
+            <span className="shrink-0 font-mono-tech text-[10px] text-slate-400">{node.type === "ACTION" ? "AKSI" : "DIAGNOSIS"}</span>
+          </div>
+          <div className="grid grid-cols-4 divide-x divide-white/10 text-center">
+            <HudCell label="Langkah" value={String(moves)} />
+            <HudCell label="Time" value={formatTime(elapsed)} />
+            <HudCell label="Sinyal" value={String(Object.keys(signals).length)} />
+            <HudCell label="Hint" value={`${hintCount}/4`} />
+          </div>
         </div>
       </div>
 
@@ -233,18 +251,43 @@ export function SimulationPage() {
 
           <Card>
             <CardContent className="p-4">
-              <div className="mb-2 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Skor saat ini</div>
-              <div className="flex items-center gap-2">
-                <Star className="h-4 w-4 text-amber-500" />
-                <span className="font-display text-2xl font-extrabold">{Math.max(0, Math.round(50 + Math.max(0, (1 - wrongCount / Math.max(1, moves))) * 0 * moves))}</span>
+              <div className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Telemetri Misi</div>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Langkah diambil</span>
+                  <span className="font-mono-tech font-bold">{moves}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Akurasi langkah</span>
+                  <span className={cn("font-mono-tech font-bold", moves && wrongCount / moves > 0.4 ? "text-rose-600" : "text-emerald-600")}>
+                    {moves ? Math.round((1 - wrongCount / moves) * 100) : 100}%
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Hint dipakai</span>
+                  <span className="font-mono-tech font-bold">{hintCount}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-muted-foreground">Waktu</span>
+                  <span className="font-mono-tech font-bold">{formatTime(elapsed)}</span>
+                </div>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Skor akhir dihitung dari akurasi, efisiensi langkah, waktu, dan pengurangan hint (skor dasar 50).
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                Skor akhir dihitung dari akurasi, efisiensi langkah, waktu, dan penalti hint (skor dasar 50).
               </p>
             </CardContent>
           </Card>
         </div>
       </div>
+    </div>
+  );
+}
+
+function HudCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="px-2 py-2.5">
+      <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">{label}</div>
+      <div className="mt-0.5 font-mono-tech text-sm font-extrabold text-white">{value}</div>
     </div>
   );
 }
@@ -267,6 +310,14 @@ function OptionCard({ option, disabled, onPick }: { option: CaseOption; disabled
   );
 }
 
+const GRADE_META: Record<string, { label: string; head: string }> = {
+  S: { label: "Misi Sempurna", head: "Diagnosis Presisi! 🏆" },
+  A: { label: "Diagnosis Presisi", head: "Simulasi Berhasil! 🎉" },
+  B: { label: "Solusi Akurat", head: "Simulasi Berhasil! 🎉" },
+  C: { label: "Cukup Baik", head: "Misi Berhasil! ✅" },
+  D: { label: "Perlu Latihan Lagi", head: "Misi Belum Sempurna" },
+};
+
 function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
   result: { success: boolean; score: SimResult; xpGained: number };
   moves: number;
@@ -275,16 +326,17 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
   onExit: () => void;
 }) {
   const s = result.score;
+  const grade = GRADE_META[s.grade] ?? GRADE_META.D;
   return (
     <div className="animate-fade-in-up mx-auto max-w-lg pt-10">
       <Card className="overflow-hidden">
         <div className={cn("px-6 py-8 text-center", result.success ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10" : "bg-gradient-to-br from-rose-500/15 to-orange-500/10")}>
-          <div className={cn("mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-card shadow-lift",
-            result.success ? "text-emerald-500" : "text-rose-500")}>
-            {result.success ? <CircleCheck className="h-8 w-8" /> : <XCircle className="h-8 w-8" />}
+          <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-900 shadow-lift ring-4 ring-white/40">
+            <span className="font-display text-4xl font-extrabold text-white">{s.grade}</span>
           </div>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.28em] text-slate-500">{grade.label}</div>
           <h1 className="font-display text-2xl font-extrabold">
-            {result.success ? "Simulasi Berhasil! 🎉" : "Simulasi Belum Berhasil"}
+            {result.success ? grade.head : "Simulasi Belum Berhasil"}
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {result.success ? "Langkahmu mengarah ke solusi yang benar. Kerja bagus!" : "Tenang — kegagalan adalah bagian dari diagnosis. Coba lagi!"}
@@ -295,7 +347,6 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
               <Star key={i} className={cn("h-6 w-6", i <= s.stars ? "fill-amber-400 text-amber-400" : "text-muted")} />
             ))}
           </div>
-          <div className="mt-2 text-xs font-semibold text-muted-foreground">Nilai: {s.grade}</div>
         </div>
 
         <div className="space-y-3 px-6 py-5">

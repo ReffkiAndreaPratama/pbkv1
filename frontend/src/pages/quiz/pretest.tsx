@@ -6,7 +6,7 @@ export function PretestPage() {
       title="Pretest"
       subtitle="Ukur kemampuan awalmu sebelum jalur belajar adaptif disusun."
       config="PRETEST"
-      onBackHref="/"
+      onBackHref="/path"
     />
   );
 }

@@ -1,17 +1,17 @@
 import {
   LayoutDashboard,
-  Wrench,
   BookOpenText,
-  BrainCircuit,
-  Trophy,
-  BarChart3,
-  Medal,
-  Settings,
+  ListChecks,
+  MonitorCog,
+  Target,
+  UserRound,
+  Sparkles,
   ShieldCheck,
   Users,
-  ListChecks,
+  Wrench,
   Database,
-  MonitorCog,
+  Layers,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 
@@ -19,59 +19,29 @@ export interface NavItem {
   title: string;
   path: string;
   icon: LucideIcon;
-  accent?: string;
+  end?: boolean;
 }
 
-export interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-export const navGroups: NavGroup[] = [
-  {
-    label: "Belajar",
-    items: [
-      { title: "Dashboard", path: "/", icon: LayoutDashboard },
-      { title: "Simulasi Kasus", path: "/cases", icon: MonitorCog, accent: "tech" },
-      { title: "Materi", path: "/materials", icon: BookOpenText, accent: "circuit" },
-    ],
-  },
-  {
-    label: "Evaluasi",
-    items: [
-      { title: "Pretest", path: "/quiz/pretest", icon: BrainCircuit, accent: "energy" },
-      { title: "Posttest", path: "/quiz/posttest", icon: ShieldCheck, accent: "danger" },
-      { title: "Kuis Adaptif", path: "/quiz/adaptive", icon: ListChecks, accent: "tech" },
-    ],
-  },
-  {
-    label: "Perkembangan",
-    items: [
-      { title: "Progres & Statistik", path: "/progress", icon: BarChart3 },
-      { title: "Pencapaian", path: "/achievements", icon: Trophy, accent: "energy" },
-      { title: "Papan Peringkat", path: "/leaderboard", icon: Medal },
-    ],
-  },
+export const navItems: NavItem[] = [
+  { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, end: true },
+  { title: "Materi", path: "/materials", icon: BookOpenText },
+  { title: "Latihan", path: "/practice", icon: ListChecks },
+  { title: "Simulasi", path: "/cases", icon: MonitorCog },
+  { title: "Evaluasi", path: "/evaluation", icon: Target },
+  { title: "Profil", path: "/profile", icon: UserRound },
 ];
 
-export const adminNav: NavItem[] = [
-  { title: "Dashboard Admin", path: "/admin", icon: Settings },
+export const bottomNav: NavItem[] = navItems;
+
+export const adminNavItems: NavItem[] = [
+  { title: "Ringkasan", path: "/admin", icon: LayoutDashboard, end: true },
   { title: "Pengguna", path: "/admin/users", icon: Users },
+  { title: "Kategori Skill", path: "/admin/skills", icon: Layers },
   { title: "Kasus", path: "/admin/cases", icon: Wrench },
   { title: "Soal Kuis", path: "/admin/questions", icon: ListChecks },
   { title: "Materi", path: "/admin/materials", icon: Database },
+  { title: "Monitor Progres", path: "/admin/progress", icon: Activity },
 ];
 
-export const bottomNav: NavItem[] = [
-  { title: "Home", path: "/", icon: LayoutDashboard },
-  { title: "Kasus", path: "/cases", icon: MonitorCog },
-  { title: "Materi", path: "/materials", icon: BookOpenText },
-  { title: "Progres", path: "/progress", icon: BarChart3 },
-];
-
-export const accentColor: Record<string, string> = {
-  tech: "text-secondary",
-  circuit: "text-foreground",
-  energy: "text-amber-500",
-  danger: "text-rose-500",
-};
+export const adminIcon = ShieldCheck;
+export const aiIcon = Sparkles;

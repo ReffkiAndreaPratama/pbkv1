@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { CASES, SKILLS, type SeedCase } from "./seed/cases-data";
-import { QUESTIONS, MATERIALS, ACHIEVEMENTS } from "./seed/static-data";
+import { QUESTIONS, MATERIALS, ACHIEVEMENTS, SKILL_QUESTION_MEDIA } from "./seed/static-data";
+import { EXTRA_QUESTIONS, EXTRA_MATERIALS } from "./seed/static-data-extra";
+import { EXTRA_CASES } from "./seed/cases-data-extra";
 
 const prisma = new PrismaClient();
 
@@ -182,20 +184,24 @@ async function main() {
   const skillId = await seedSkills();
 
   console.log("🧩 seeding cases...");
-  for (const c of CASES) {
+  for (const c of [...CASES, ...EXTRA_CASES]) {
     await seedCase(c, skillId);
   }
 
   console.log("📚 seeding materials...");
-  for (const m of MATERIALS) {
+  for (const m of [...MATERIALS, ...EXTRA_MATERIALS]) {
     const content = m.sections.map((s) => `## ${s.title}\n\n${s.body}`).join("\n\n");
     await prisma.material.create({
-      data: { skillId: skillId(m.skill), title: m.title, summary: m.summary, content, order: m.order },
+      data: { skillId: skillId(m.skill), title: m.title, summary: m.summary, content, order: m.order, imageUrl: m.imageUrl ?? null, videoUrl: m.videoUrl ?? null, links: null },
     });
   }
 
   console.log("❓ seeding questions...");
-  for (const q of QUESTIONS) {
+  const questionMediaCount: Record<string, number> = {};
+  for (const q of [...QUESTIONS, ...EXTRA_QUESTIONS]) {
+    const media = SKILL_QUESTION_MEDIA[q.skill];
+    const count = (questionMediaCount[q.skill] ?? 0) + 1;
+    questionMediaCount[q.skill] = count;
     await prisma.question.create({
       data: {
         skillId: skillId(q.skill),
@@ -205,6 +211,8 @@ async function main() {
         explanation: q.explanation,
         difficulty: q.difficulty,
         phases: q.phases,
+        imageUrl: q.imageUrl ?? (media?.images[(count - 1) % media.images.length] ?? null),
+        videoUrl: q.videoUrl ?? media?.video ?? null,
       },
     });
   }

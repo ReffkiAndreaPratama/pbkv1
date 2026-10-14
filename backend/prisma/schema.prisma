@@ -132,13 +132,16 @@ model SkillMastery {
 }
 
 model Material {
-  id      String @id @default(cuid())
-  skillId String
-  title   String
-  summary String
-  content String
-  order   Int    @default(0)
+  id       String  @id @default(cuid())
+  skillId  String
+  title    String
+  summary  String
+  content  String
+  order    Int     @default(0)
   isActive Boolean @default(true)
+  imageUrl String?
+  videoUrl String?
+  links    Json?
 
   skill       Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
   materialRead MaterialRead[]
@@ -261,6 +264,8 @@ model Question {
   explanation String
   difficulty  Difficulty @default(MEDIUM)
   phases      Json
+  imageUrl    String?
+  videoUrl    String?
   isActive    Boolean    @default(true)
 
   skill     Skill        @relation(fields: [skillId], references: [id], onDelete: Cascade)

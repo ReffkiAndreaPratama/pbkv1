@@ -25,6 +25,31 @@ export function PageLoader() {
   );
 }
 
+export function CardGridSkeleton({ groups = 2, perGroup = 3 }: { groups?: number; perGroup?: number }) {
+  return (
+    <div className="space-y-7">
+      {Array.from({ length: groups }).map((_, g) => (
+        <div key={g} className="space-y-2.5">
+          <Skeleton className="h-4 w-40" />
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: perGroup }).map((_, i) => (
+              <div key={i} className="overflow-hidden rounded-2xl border border-border/60 bg-card">
+                <Skeleton className="aspect-[2/1] w-full rounded-none" />
+                <div className="space-y-2 p-4">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-2/3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function EmptyState({ icon, title, description, action }: { icon?: React.ReactNode; title: string; description?: string; action?: React.ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border/80 bg-card/50 px-6 py-14 text-center">

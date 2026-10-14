@@ -1,23 +1,43 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Flame, Trophy, Target, ArrowRight, BookOpenText, MonitorCog, BrainCircuit, ListChecks, Sparkles } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpenText,
+  Brain,
+  Check,
+  CheckCircle2,
+  Clock,
+  Flame,
+  Laptop,
+  ListChecks,
+  MonitorCog,
+  Monitor,
+  Sparkles,
+  Target,
+  Trophy,
+} from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Button } from "@/components/ui/button";
+import { getJalur } from "@/lib/learning-path";
 import { PageLoader, EmptyState } from "@/components/ui/feedback";
-import { greeting, formatNumber, tierLabel, tierColor, cn } from "@/lib/utils";
+import { tierLabel, tierStatusClass, formatNumber, greeting, dateChip, cn } from "@/lib/utils";
 import type { SummaryData, PathItem, QuizSessionRow } from "@/lib/types";
 
 const pathIcon: Record<string, React.ReactNode> = {
-  MATERIAL: <BookOpenText className="h-4 w-4" />,
-  CASE: <MonitorCog className="h-4 w-4" />,
-  QUIZ: <BrainCircuit className="h-4 w-4" />,
-  POSTTEST: <Trophy className="h-4 w-4" />,
+  MATERIAL: <BookOpenText size={17} />,
+  CASE: <MonitorCog size={17} />,
+  QUIZ: <Brain size={17} />,
+  POSTTEST: <Trophy size={17} />,
 };
+
+const pathHref = (item: PathItem) =>
+  item.type === "MATERIAL"
+    ? `/materials/${item.refId}`
+    : item.type === "CASE"
+    ? `/cases/${item.refId}`
+    : item.type === "QUIZ"
+    ? `/quiz/adaptive?skill=${item.skillId}`
+    : "/quiz/posttest";
 
 export function DashboardPage() {
   const { user } = useAuth();
@@ -37,179 +57,301 @@ export function DashboardPage() {
   if (loading || !summary) return <PageLoader />;
 
   const p = summary.profile;
+  const jalur = getJalur();
+  const isPC = jalur === "PC";
+  const overall = Math.min(100, Math.round((summary.avgMastery || 0) * 100));
+  const currentMaterial = path.find((i) => i.type === "MATERIAL");
+  const recommended = path[0];
 
   return (
-    <div className="animate-fade-in">
-      <PageHeader
-        title={`${greeting()}, ${user?.name?.split(" ")[0]}! 👋`}
-        subtitle="Yuk pertajam skill troubleshooting IT kamu hari ini."
-        actions={
-          <div className="flex items-center gap-2">
-            <Badge variant="info">
-              <Flame className="h-3 w-3" /> {p.streakDays} hari streak
-            </Badge>
-            <Badge>
-              <Trophy className="h-3 w-3" /> Level {p.level}
-            </Badge>
-          </div>
-        }
-      />
+    <div className="dashboard-page">
+      <div className="page-heading">
+        <div>
+          <span className="kicker">DASHBOARD</span>
+          <h1>
+            {greeting()}, {user?.name?.split(" ")[0]}! 👋 Lanjutkan pembelajaranmu.
+          </h1>
+          <p>Pantau progres dan lanjutkan aktivitas terakhir kamu.</p>
+        </div>
+        <span className="date-chip">
+          <Clock size={16} /> {dateChip()}
+        </span>
+      </div>
 
       {!p.pretestDone && (
-        <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-              <Target className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-display text-sm font-bold">Belum mengerjakan pretest</div>
-              <p className="text-sm text-muted-foreground">Pretest membantu kami mengukur kemampuan awalmu dan menyusun jalur belajar adaptif.</p>
-            </div>
+        <div className="dashboard-banner">
+          <span>
+            <Target size={19} />
+          </span>
+          <div>
+            <strong>Belum mengerjakan pretest</strong>
+            <p>Pretest membantu kami mengukur kemampuan awalmu dan menyusun jalur belajar adaptif.</p>
           </div>
-          <Button asChild size="sm">
-            <Link to="/quiz/pretest">Kerjakan Pretest →</Link>
-          </Button>
+          <Link className="btn btn-primary" to="/quiz/pretest">
+            Kerjakan Pretest
+          </Link>
         </div>
       )}
 
-      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatCard label="XP Total" value={formatNumber(p.totalXp)} icon={<Sparkles className="h-4 w-4" />} tone="bg-primary/10 text-primary" />
-        <StatCard label="Kasus Berhasil" value={formatNumber(summary.successCases)} icon={<MonitorCog className="h-4 w-4" />} tone="bg-cyan-500/10 text-cyan-600" />
-        <StatCard label="Skor Rata-rata" value={`${formatNumber(summary.avgScore)}/100`} icon={<BrainCircuit className="h-4 w-4" />} tone="bg-amber-500/10 text-amber-600" />
-        <StatCard label="Materi Dibaca" value={formatNumber(summary.materialReads)} icon={<BookOpenText className="h-4 w-4" />} tone="bg-emerald-500/10 text-emerald-600" />
+      <section className="active-path-card">
+        <div className="active-path-copy">
+          <span className="overline">JALUR AKTIF</span>
+          <div className="active-title">
+            <span>{isPC ? <Monitor size={28} /> : <Laptop size={28} />}</span>
+            <div>
+              <h2>Troubleshooting {jalur}</h2>
+              <p>
+                {summary.materialReads} dari {summary.totalCases} aktivitas selesai
+              </p>
+            </div>
+          </div>
+          <div className="active-progress">
+            <div>
+              <span>Progress keseluruhan</span>
+              <strong>{overall}%</strong>
+            </div>
+            <div className="progress-track">
+              <span style={{ width: `${overall}%` }} />
+            </div>
+          </div>
+          <Link className="btn btn-primary" to={currentMaterial ? pathHref(currentMaterial) : "/materials"}>
+            Lanjutkan Materi
+          </Link>
+        </div>
+        <div className="active-art">
+          <img src={isPC ? "/materials/display.jpg" : "/materials/boot.jpg"} alt="Komponen perangkat" />
+          <span className="art-chip chip-one">
+            {isPC ? "RAM" : "BATTERY"} <Check size={12} />
+          </span>
+          <span className="art-chip chip-two">{isPC ? "BIOS" : "CHARGING"}</span>
+        </div>
+      </section>
+
+      <div className="dashboard-grid">
+        <section className="panel current-panel">
+          <div className="panel-head">
+            <div>
+              <span className="kicker">LANJUTKAN DARI TERAKHIR</span>
+              <h2>Materi Saat Ini</h2>
+            </div>
+            <span className="module-pill">{currentMaterial ? currentMaterial.skillCode : "MULAI"}</span>
+          </div>
+          <div className="current-content">
+            <span className="content-icon">
+              <BookOpenText size={25} />
+            </span>
+            <div>
+              <h3>{currentMaterial ? currentMaterial.reason : "Mulai dari materi pertama"}</h3>
+              <p>{currentMaterial ? "Ikuti materi yang direkomendasikan sesuai hasil pretest kamu." : "Baca materi untuk membangun dasar troubleshooting."}</p>
+              <div className="inline-progress">
+                <div className="progress-track">
+                  <span style={{ width: `${overall}%` }} />
+                </div>
+                <strong>{summary.materialReads}/6</strong>
+              </div>
+            </div>
+          </div>
+          <Link className="btn btn-secondary" to="/materials">
+            Buka Materi <ArrowRight size={17} />
+          </Link>
+        </section>
+
+        <section className="panel recommendation-panel">
+          <div className="panel-head">
+            <div>
+              <span className="kicker">REKOMENDASI UNTUKMU</span>
+              <h2>Aktivitas Berikutnya</h2>
+            </div>
+            <span className="spark-box">
+              <Sparkles size={18} />
+            </span>
+          </div>
+          <div className="recommendation-content">
+            <span className="content-icon orange">
+              <Target size={25} />
+            </span>
+            <div>
+              <h3>{recommended ? recommended.reason : "Latihan adaptif"}</h3>
+              <p>{recommended ? `Fokus pada skill ${recommended.skillCode} yang masih perlu diperkuat.` : "Kerjakan pretest untuk mendapat rekomendasi personal."}</p>
+              <span className="meta">
+                <Clock size={15} /> 10 menit <i /> 10 soal
+              </span>
+            </div>
+          </div>
+          <Link className="btn btn-secondary" to="/practice">
+            Mulai Latihan <ArrowRight size={17} />
+          </Link>
+        </section>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Mastery */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>Penguasaan Skill</CardTitle>
-            <Link to="/progress" className="text-sm font-semibold text-primary hover:underline">Lihat detail →</Link>
-          </CardHeader>
-          <CardContent className="space-y-4">
+      <div className="dashboard-insight-row">
+        <section className="panel">
+          <span>
+            <CheckCircle2 size={18} />
+          </span>
+          <div>
+            <small>HASIL TERAKHIR</small>
+            <strong>
+              {summary.recentQuizzes[0]
+                ? `${summary.recentQuizzes[0].correctCount}/${summary.recentQuizzes[0].totalCount} benar · ${Math.round(summary.recentQuizzes[0].score ?? 0)}%`
+                : "Belum ada hasil"}
+            </strong>
+          </div>
+        </section>
+        <section className="panel weak">
+          <span>
+            <Target size={18} />
+          </span>
+          <div>
+            <small>KATEGORI LEMAH</small>
+            <strong>{weakestSkill(summary) || "Belum ada data"}</strong>
+          </div>
+        </section>
+        <section className="panel action">
+          <span>
+            <MonitorCog size={18} />
+          </span>
+          <div>
+            <small>AKSES CEPAT</small>
+            <strong>Simulasi Troubleshooting</strong>
+          </div>
+          <Link to="/cases">
+            <ArrowRight size={17} />
+          </Link>
+        </section>
+      </div>
+
+      <div className="dashboard-bottom">
+        <section className="panel skill-panel">
+          <div className="panel-head">
+            <div>
+              <span className="kicker">PERKEMBANGAN KEMAMPUAN</span>
+              <h2>Progress Keterampilan</h2>
+            </div>
+            <Link className="panel-link" to="/progress">
+              Lihat detail <ArrowRight size={15} />
+            </Link>
+          </div>
+          <div className="skills-grid">
             {summary.masteryBySkill.map((m) => (
-              <div key={m.code}>
-                <div className="mb-1.5 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <span className="font-mono-tech text-xs text-muted-foreground">{m.code}</span>
-                    {m.name}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", tierColor(m.tier))}>{tierLabel(m.tier)}</span>
-                    <span className="text-sm font-bold">{Math.round(m.mastery * 100)}%</span>
-                  </div>
+              <div className="skill-row" key={m.code}>
+                <div className="skill-label">
+                  <strong>{m.code}</strong>
+                  <span className={`status ${tierStatusClass(m.tier)}`}>{tierLabel(m.tier)}</span>
                 </div>
-                <Progress value={m.mastery * 100} indicatorClassName={m.mastery >= 0.75 ? "bg-emerald-500" : m.mastery >= 0.4 ? "bg-amber-500" : "bg-rose-500"} />
+                <div className="progress-track">
+                  <span style={{ width: `${Math.round(m.mastery * 100)}%` }} />
+                </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Recommendation path */}
-        <Card>
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle>Rekomendasi Belajar</CardTitle>
-            <Target className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {path.length === 0 && <EmptyState title="Belum ada rekomendasi" description="Lengkapi pretest dulu ya!" />}
-            {path.map((item, i) => {
-              const href =
-                item.type === "MATERIAL"
-                  ? `/materials/${item.refId}`
-                  : item.type === "CASE"
-                  ? `/cases/${item.refId}`
-                  : item.type === "QUIZ"
-                  ? `/quiz/adaptive?skill=${item.skillId}`
-                  : "/quiz/posttest";
-              return (
-                <Link key={i} to={href} className="group flex items-center gap-3 rounded-xl border border-border/70 p-3 transition-all hover:border-primary/40 hover:bg-primary/5">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">{pathIcon[item.type]}</div>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm font-semibold group-hover:text-primary">{item.reason}</div>
-                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                      <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">{item.skillCode}</Badge>
-                      Urgensi {item.urgency}
-                    </div>
-                  </div>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
-                </Link>
-              );
-            })}
-          </CardContent>
-        </Card>
+        <aside className="adaptive-card">
+          <Link className="adaptive-link" to="/adaptive">
+            <span className="adaptive-icon">
+              <Brain size={28} />
+            </span>
+            <span className="kicker">PEMBELAJARAN ADAPTIF</span>
+            <h3>Belajar sesuai kebutuhanmu</h3>
+            <p>Pembelajaran disesuaikan berdasarkan hasil aktivitasmu.</p>
+            <div>
+              <Sparkles size={16} /> Lihat rekomendasi terbaru <ArrowRight size={14} />
+            </div>
+          </Link>
+        </aside>
       </div>
 
-      {/* Recent activity + quick start */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Kuis Terbaru</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {summary.recentQuizzes.length === 0 ? (
-              <EmptyState
-                icon={<ListChecks className="h-6 w-6" />}
-                title="Belum ada kuis"
-                description="Kerjakan pretest, kuis adaptif, atau posttest untuk melihat hasilnya di sini."
-              />
-            ) : (
-              <div className="space-y-2">
-                {summary.recentQuizzes.map((q) => (
-                  <QuizRow key={q.id} q={q} />
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Mulai cepat</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            <Button asChild variant="outline" className="w-full justify-start"><Link to="/cases">🔍 Jelajahi Simulasi Kasus</Link></Button>
-            <Button asChild variant="outline" className="w-full justify-start"><Link to="/materials">📚 Baca Materi</Link></Button>
-            <Button asChild variant="outline" className="w-full justify-start"><Link to="/quiz/adaptive">🧠 Kuis Adaptif</Link></Button>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Butuh bantuan? Klik tombol <Sparkles className="inline h-3 w-3" /> <b>TechTutor AI</b> di pojok kanan bawah.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="panel dashboard-mini">
+        <div className="mini-stat">
+          <span className="mini-icon blue">
+            <Sparkles size={17} />
+          </span>
+          <div>
+            <strong>{formatNumber(p.totalXp)}</strong>
+            <small>XP Total</small>
+          </div>
+        </div>
+        <div className="mini-stat">
+          <span className="mini-icon orange">
+            <Flame size={17} />
+          </span>
+          <div>
+            <strong>{p.streakDays}</strong>
+            <small>Streak hari</small>
+          </div>
+        </div>
+        <div className="mini-stat">
+          <span className="mini-icon green">
+            <Trophy size={17} />
+          </span>
+          <div>
+            <strong>Level {p.level}</strong>
+            <small>Level saat ini</small>
+          </div>
+        </div>
+        <div className="mini-stat">
+          <span className="mini-icon navy">
+            <ListChecks size={17} />
+          </span>
+          <div>
+            <strong>{summary.successCases}</strong>
+            <small>Kasus berhasil</small>
+          </div>
+        </div>
       </div>
+
+      <section className="panel skill-panel">
+        <div className="panel-head">
+          <div>
+            <span className="kicker">KUIS TERBARU</span>
+            <h2>Riwayat Kuis</h2>
+          </div>
+          <Link className="panel-link" to="/evaluation">
+            Lihat evaluasi <ArrowRight size={15} />
+          </Link>
+        </div>
+        {summary.recentQuizzes.length === 0 ? (
+          <EmptyState
+            icon={<ListChecks size={24} />}
+            title="Belum ada kuis"
+            description="Kerjakan pretest, kuis adaptif, atau posttest untuk melihat hasilnya di sini."
+          />
+        ) : (
+          <div className="quiz-history">
+            {summary.recentQuizzes.map((q) => (
+              <QuizHistoryRow key={q.id} q={q} />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
 
-function StatCard({ label, value, icon, tone }: { label: string; value: string; icon: React.ReactNode; tone: string }) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-4">
-        <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-xl", tone)}>{icon}</div>
-        <div className="min-w-0">
-          <div className="font-display text-lg font-extrabold leading-tight">{value}</div>
-          <div className="truncate text-xs text-muted-foreground">{label}</div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+function weakestSkill(s: SummaryData): string | null {
+  const weak = [...s.masteryBySkill].sort((a, b) => a.mastery - b.mastery)[0];
+  if (!weak || weak.mastery >= 0.75) return null;
+  return `${weak.code} — ${tierLabel(weak.tier)}`;
 }
 
-function QuizRow({ q }: { q: QuizSessionRow }) {
+function QuizHistoryRow({ q }: { q: QuizSessionRow }) {
   const typeLabel: Record<string, string> = { PRETEST: "Pretest", POSTTEST: "Posttest", ADAPTIVE: "Kuis Adaptif" };
+  const pass = q.score !== null && q.score >= 70;
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border/60 px-3 py-2.5">
-      <div className="min-w-0">
-        <div className="text-sm font-semibold">{typeLabel[q.type] ?? q.type}</div>
-        <div className="text-xs text-muted-foreground">
+    <div className="quiz-history-row">
+      <span className="quiz-type-icon">
+        <ListChecks size={17} />
+      </span>
+      <div className="quiz-meta">
+        <strong>{typeLabel[q.type] ?? q.type}</strong>
+        <small>
           {q.correctCount}/{q.totalCount} benar · {Math.round(q.score ?? 0)}/100
-        </div>
+        </small>
       </div>
-      {q.completedAt ? (
-        <Badge variant={q.score && q.score >= 70 ? "success" : "warning"}>{q.score && q.score >= 70 ? "Lulus" : "Belum lulus"}</Badge>
-      ) : (
-        <Badge variant="secondary">Belum selesai</Badge>
-      )}
+      <span className={cn("status", pass ? "status-mastered" : q.completedAt ? "status-needs-practice" : "status-in-progress")}>
+        {q.completedAt ? (pass ? "Lulus" : "Belum lulus") : "Berjalan"}
+      </span>
     </div>
   );
 }

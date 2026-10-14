@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Play, MonitorCog, Lightbulb, ListOrdered } from "lucide-react";
+import { ArrowLeft, ArrowRight, Play, MonitorCog, Lightbulb, ListOrdered } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoader } from "@/components/ui/feedback";
 import { difficultyLabel, difficultyColor, cn } from "@/lib/utils";
-import type { CaseDetail } from "@/lib/types";
+import { skillImageUrl } from "@/lib/skill-media";
+import type { CaseDetail, CaseListItem, Difficulty } from "@/lib/types";
 
 export function CaseDetailPage() {
   const { id } = useParams();
@@ -16,9 +17,28 @@ export function CaseDetailPage() {
   const { user } = useAuth();
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
   const [starting, setStarting] = useState(false);
+  const [prev, setPrev] = useState<CaseListItem | null>(null);
+  const [next, setNext] = useState<CaseListItem | null>(null);
 
   useEffect(() => {
     if (id) api.get<CaseDetail>(`/api/cases/${id}`).then(setCaseDetail).catch(() => setCaseDetail(null));
+  }, [id]);
+
+  useEffect(() => {
+    if (!id) return;
+    const level: Record<Difficulty, number> = { EASY: 0, MEDIUM: 1, HARD: 2 };
+    api.get<CaseListItem[]>("/api/cases")
+      .then((all) => {
+        const ordered = [...all].sort(
+          (a, b) => a.skill.code.localeCompare(b.skill.code) || level[a.difficulty] - level[b.difficulty] || a.title.localeCompare(b.title)
+        );
+        const idx = ordered.findIndex((c) => c.id === id);
+        if (idx > -1) {
+          setPrev(idx > 0 ? ordered[idx - 1] : null);
+          setNext(idx < ordered.length - 1 ? ordered[idx + 1] : null);
+        }
+      })
+      .catch(() => {});
   }, [id]);
 
   const start = async () => {
@@ -62,6 +82,15 @@ export function CaseDetailPage() {
         </div>
       </div>
 
+      <div className="mb-5 overflow-hidden rounded-2xl border border-border/60">
+        <img
+          src={skillImageUrl(caseDetail.skill.code)}
+          alt={caseDetail.skill.name}
+          className="h-40 w-full object-cover sm:h-52"
+          loading="lazy"
+        />
+      </div>
+
       {!active && (
         <div className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-400/30 bg-amber-50 p-4 text-sm text-amber-800">
           <Lightbulb className="mt-0.5 h-5 w-5 shrink-0" />
@@ -93,7 +122,7 @@ export function CaseDetailPage() {
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge variant="secondary">Fokus pada ~{caseDetail.targetSteps} langkah optimal</Badge>
-                <Badge variant="secondary">Estimasi wakt</Badge>
+                <Badge variant="secondary">Estimasi ±{Math.round(caseDetail.expectedTimeSec / 60)} menit</Badge>
               </div>
             </CardContent>
           </Card>
@@ -104,9 +133,12 @@ export function CaseDetailPage() {
             <CardContent className="p-4">
               <div className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Skill yang dilatih</div>
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 font-mono-tech text-xs font-bold text-primary">
-                  {caseDetail.skill.code.slice(0, 2)}
-                </div>
+                <img
+                  src={skillImageUrl(caseDetail.skill.code)}
+                  alt=""
+                  className="h-10 w-10 rounded-xl object-cover"
+                  loading="lazy"
+                />
                 <div>
                   <div className="text-sm font-semibold">{caseDetail.skill.name}</div>
                   <div className="text-xs text-muted-foreground">Sesuai kurikulum troubleshooting</div>
@@ -140,6 +172,33 @@ export function CaseDetailPage() {
           </Card>
         </div>
       </div>
+
+      {(prev || next) && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          {prev ? (
+            <Link to={`/cases/${prev.id}`} className="group block rounded-xl border border-border/70 bg-card p-4 transition-colors hover:border-primary/40 hover:bg-accent/40">
+              <span className="flex items-center gap-1 text-[11px] font-semibold text-muted-foreground">
+                <ArrowLeft className="h-3.5 w-3.5" /> Kasus sebelumnya
+              </span>
+              <span className="mt-1 block truncate text-sm font-bold group-hover:text-primary">{prev.title}</span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">{prev.skill.name}</span>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {next ? (
+            <Link to={`/cases/${next.id}`} className="group block rounded-xl border border-border/70 bg-card p-4 text-right transition-colors hover:border-primary/40 hover:bg-accent/40 sm:col-start-2">
+              <span className="flex items-center justify-end gap-1 text-[11px] font-semibold text-muted-foreground">
+                Kasus berikutnya <ArrowRight className="h-3.5 w-3.5" />
+              </span>
+              <span className="mt-1 block truncate text-sm font-bold group-hover:text-primary">{next.title}</span>
+              <span className="mt-0.5 block text-[11px] text-muted-foreground">{next.skill.name}</span>
+            </Link>
+          ) : (
+            <span />
+          )}
+        </div>
+      )}
     </div>
   );
 }

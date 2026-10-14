@@ -27,14 +27,21 @@ router.post("/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
   const user = await prisma.user.create({
     data: { email, name, password: passwordHash, profile: { create: { skillPriority: [] } } },
+    include: { profile: { select: { pretestDone: true, posttestDone: true, posttestScore: true, level: true, totalXp: true, streakDays: true, learningStyle: true, targetLevel: true } } },
   });
   const token = signToken(user);
-  res.status(201).json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } });
+  res.status(201).json({
+    token,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, createdAt: user.createdAt, profile: user.profile },
+  });
 });
 
 router.post("/login", async (req, res) => {
   const { email, password } = loginSchema.parse(req.body);
-  const user = await prisma.user.findUnique({ where: { email }, include: { profile: { select: { pretestDone: true, posttestDone: true, level: true, totalXp: true } } } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    include: { profile: { select: { pretestDone: true, posttestDone: true, posttestScore: true, level: true, totalXp: true, streakDays: true, learningStyle: true, targetLevel: true } } },
+  });
   if (!user || !(await bcrypt.compare(password, user.password))) {
     res.status(401).json({ error: "Invalid email or password." });
     return;
@@ -42,7 +49,7 @@ router.post("/login", async (req, res) => {
   const token = signToken(user);
   res.json({
     token,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role, profile: user.profile },
+    user: { id: user.id, email: user.email, name: user.name, role: user.role, createdAt: user.createdAt, profile: user.profile },
   });
 });
 

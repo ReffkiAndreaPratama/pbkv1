@@ -2,11 +2,19 @@ import { useEffect } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
+import { flowTarget, flowBlockedStep } from "@/lib/flow";
 import { AppShell } from "@/components/layout/app-shell";
 import { LoginPage } from "@/pages/auth/login";
 import { RegisterPage } from "@/pages/auth/register";
 import { OnboardingPage } from "@/pages/onboarding";
+import { LandingPage } from "@/pages/landing";
+import { PathSelectionPage } from "@/pages/path-selection";
 import { DashboardPage } from "@/pages/dashboard";
+import { PracticePage } from "@/pages/practice";
+import { EvaluationPage } from "@/pages/evaluation";
+import { ProfilePage } from "@/pages/profile";
+import { AdaptivePage } from "@/pages/adaptive";
+import { AiTutorPage } from "@/pages/ai-tutor";
 import { CasesPage } from "@/pages/cases/index";
 import { CaseDetailPage } from "@/pages/cases/detail";
 import { SimulationPage } from "@/pages/simulation";
@@ -24,9 +32,12 @@ import { AdminUserDetailPage } from "@/pages/admin/user-detail";
 import { AdminCasesPage } from "@/pages/admin/cases";
 import { AdminQuestionsPage } from "@/pages/admin/questions";
 import { AdminMaterialsPage } from "@/pages/admin/materials";
+import { AdminSkillsPage } from "@/pages/admin/skills";
+import { AdminProgressPage } from "@/pages/admin/progress";
+import { NotFoundPage } from "@/pages/not-found";
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, hydrated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -36,19 +47,38 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("techtutor:unauthorized", onUnauthorized);
   }, [navigate, location.pathname]);
 
+  if (!hydrated) return null;
   if (!user) return <Navigate to="/login" replace />;
   return <>{children}</>;
 }
 
 function RequireRole({ role, children }: { role: "ADMIN"; children: React.ReactNode }) {
   const { user } = useAuth();
-  if (user?.role !== role) return <Navigate to="/" replace />;
+  if (user?.role !== role) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
 
+function RequireFlow({ children }: { children: React.ReactNode }) {
+  const { user, hydrated } = useAuth();
+  const location = useLocation();
+  if (!hydrated) return null;
+  if (!user) return <Navigate to="/login" replace />;
+  const step = flowBlockedStep(user);
+  if (step && location.pathname !== step) return <Navigate to={step} replace />;
+  return <>{children}</>;
+}
+
+function LandingRoute() {
+  const { user, hydrated } = useAuth();
+  if (!hydrated) return null;
+  if (!user) return <LandingPage />;
+  return <Navigate to={flowTarget(user)} replace />;
+}
+
 function AnonymousOnly({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
-  if (user) return <Navigate to="/" replace />;
+  const { user, hydrated } = useAuth();
+  if (!hydrated) return null;
+  if (user) return <Navigate to={flowTarget(user)} replace />;
   return <>{children}</>;
 }
 
@@ -58,17 +88,26 @@ export default function App() {
       <BrowserRouter>
         <Toaster position="top-center" richColors />
         <Routes>
+          <Route path="/" element={<LandingRoute />} />
           <Route path="/login" element={<AnonymousOnly><LoginPage /></AnonymousOnly>} />
           <Route path="/register" element={<AnonymousOnly><RegisterPage /></AnonymousOnly>} />
           <Route path="/onboarding" element={<RequireAuth><OnboardingPage /></RequireAuth>} />
+          <Route path="/path" element={<RequireAuth><PathSelectionPage /></RequireAuth>} />
           <Route
             element={
               <RequireAuth>
-                <AppShell />
+                <RequireFlow>
+                  <AppShell />
+                </RequireFlow>
               </RequireAuth>
             }
           >
-            <Route path="/" element={<DashboardPage />} />
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/practice" element={<PracticePage />} />
+            <Route path="/evaluation" element={<EvaluationPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/adaptive" element={<AdaptivePage />} />
+            <Route path="/ai" element={<AiTutorPage />} />
             <Route path="/cases" element={<CasesPage />} />
             <Route path="/cases/:id" element={<CaseDetailPage />} />
             <Route path="/simulation/:attemptId" element={<SimulationPage />} />
@@ -86,8 +125,10 @@ export default function App() {
             <Route path="/admin/cases" element={<RequireRole role="ADMIN"><AdminCasesPage /></RequireRole>} />
             <Route path="/admin/questions" element={<RequireRole role="ADMIN"><AdminQuestionsPage /></RequireRole>} />
             <Route path="/admin/materials" element={<RequireRole role="ADMIN"><AdminMaterialsPage /></RequireRole>} />
+            <Route path="/admin/skills" element={<RequireRole role="ADMIN"><AdminSkillsPage /></RequireRole>} />
+            <Route path="/admin/progress" element={<RequireRole role="ADMIN"><AdminProgressPage /></RequireRole>} />
           </Route>
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

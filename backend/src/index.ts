@@ -16,7 +16,7 @@ import progressRoutes from "./routes/progress";
 import adminRoutes from "./routes/admin";
 
 const app = express();
-app.use(cors({ origin: config.frontendUrl, credentials: true }));
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => {

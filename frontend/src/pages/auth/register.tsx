@@ -1,13 +1,10 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { MonitorCog, UserPlus, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Info, Lock, Mail, UserRound, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthLayout, AuthHeading } from "@/components/layout/auth-layout";
 
 export function RegisterPage() {
   const { login } = useAuth();
@@ -40,72 +37,60 @@ export function RegisterPage() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
-        <div className="absolute -top-40 right-[-8%] h-[440px] w-[440px] rounded-full bg-primary/20 blur-3xl animate-blob" />
-        <div className="absolute bottom-[-12%] left-[-10%] h-[400px] w-[400px] rounded-full bg-circuit/15 blur-3xl animate-blob" style={{ animationDelay: "-8s" }} />
-        <div className="absolute inset-0 bg-grid opacity-50" />
-      </div>
-
-      <div className="relative z-10 w-full max-w-md">
-        <div className="mb-6 flex items-center justify-center gap-2.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary via-cyan-600 to-circuit text-white shadow-glow">
-            <MonitorCog className="h-6 w-6" />
+    <AuthLayout
+      heading={<AuthHeading icon={<UserPlus size={22} />} subtitle="Buat akun pelajar untuk menyimpan progress dan profil kemampuanmu." title="Daftar ke TechTutor AI" />}
+    >
+      <form className="auth-form" onSubmit={submit}>
+        {error && (
+          <div className="auth-error">
+            <Info size={16} /> {error}
           </div>
-          <div>
-            <div className="font-display text-2xl font-extrabold">
-              Tech<span className="text-gradient">Tutor</span>
-            </div>
-            <div className="text-xs text-muted-foreground">Adaptive IT Troubleshooting Lab</div>
+        )}
+        <label>
+          Nama Lengkap
+          <div className="input-wrap">
+            <UserRound size={18} />
+            <input minLength={3} onChange={(e) => setName(e.target.value)} placeholder="Masukkan nama lengkap" required value={name} />
           </div>
+        </label>
+        <label>
+          Email
+          <div className="input-wrap">
+            <Mail size={18} />
+            <input onChange={(e) => setEmail(e.target.value)} placeholder="nama@email.com" required type="email" value={email} />
+          </div>
+        </label>
+        <label>
+          Password
+          <div className="input-wrap">
+            <Lock size={18} />
+            <input minLength={8} onChange={(e) => setPassword(e.target.value)} placeholder="Minimal 8 karakter" required type="password" value={password} />
+          </div>
+        </label>
+        <label>
+          Ulangi Password
+          <div className="input-wrap">
+            <Lock size={18} />
+            <input minLength={8} onChange={(e) => setConfirm(e.target.value)} placeholder="Ulangi password" required type="password" value={confirm} />
+          </div>
+        </label>
+        <p className="auth-note">
+          <Info size={15} /> Password minimal 8 karakter dan harus mengandung angka.
+        </p>
+        <button className="btn btn-primary full-button" disabled={loading} type="submit">
+          {loading ? "Membuat akun…" : "Daftar & Mulai"}
+          {!loading && <UserPlus size={18} />}
+        </button>
+        <div className="auth-divider">
+          <span>atau</span>
         </div>
-
-        <Card className="animate-fade-in-up">
-          <CardHeader>
-            <CardTitle className="text-lg">Buat akun baru</CardTitle>
-            <CardDescription>Mulai perjalanan belajarmu jadi ahli troubleshooting IT.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={submit} className="space-y-4">
-              {error && (
-                <div className="flex items-center gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  {error}
-                </div>
-              )}
-              <div className="space-y-2">
-                <Label htmlFor="name">Nama lengkap</Label>
-                <Input id="name" required minLength={3} placeholder="Nama kamu" value={name} onChange={(e) => setName(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" required placeholder="kamu@kampus.ac.id" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <Input id="password" type="password" required minLength={8} placeholder="min. 8 karakter" value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirm">Ulangi password</Label>
-                  <Input id="confirm" type="password" required minLength={8} placeholder="••••••••" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-                </div>
-              </div>
-              <Button type="submit" className="w-full" size="lg" disabled={loading}>
-                <UserPlus className="h-4 w-4" />
-                {loading ? "Membuat akun…" : "Daftar"}
-              </Button>
-            </form>
-
-            <p className="mt-4 text-center text-sm text-muted-foreground">
-              Sudah punya akun?{" "}
-              <Link to="/login" className="font-semibold text-primary underline underline-offset-4">
-                Masuk di sini
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+        <p className="register-text">
+          Sudah punya akun?{" "}
+          <button onClick={() => navigate("/login")} type="button">
+            Masuk
+          </button>
+        </p>
+      </form>
+    </AuthLayout>
   );
 }

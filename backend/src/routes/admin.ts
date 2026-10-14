@@ -54,37 +54,64 @@ router.get("/questions", async (_req, res) => {
 });
 
 router.post("/questions", async (req, res) => {
-  const { skillId, prompt, options, correctKeys, difficulty, phases, explanation } = req.body;
-  const q = await prisma.question.create({ data: { skillId, prompt, options, correctKeys, difficulty, phases, explanation, isActive: true } });
+  const { skillId, prompt, options, correctKeys, difficulty, phases, explanation, imageUrl, videoUrl } = req.body;
+  const q = await prisma.question.create({
+    data: {
+      skillId,
+      prompt,
+      options,
+      correctKeys,
+      difficulty,
+      phases,
+      explanation,
+      imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
+      videoUrl: typeof videoUrl === "string" && videoUrl.trim() ? videoUrl.trim() : null,
+      isActive: true,
+    },
+  });
   res.status(201).json(q);
 });
 
 router.put("/questions/:id", async (req, res) => {
-  const { isActive, prompt, difficulty, options, correctKeys } = req.body;
+  const { isActive, prompt, difficulty, options, correctKeys, explanation, phases, imageUrl, videoUrl } = req.body;
   const data: any = {};
   if (typeof isActive === "boolean") data.isActive = isActive;
   if (prompt) data.prompt = prompt;
   if (difficulty) data.difficulty = difficulty;
   if (options) data.options = options;
   if (correctKeys) data.correctKeys = correctKeys;
+  if (typeof explanation === "string") data.explanation = explanation;
+  if (phases) data.phases = phases;
+  if (imageUrl !== undefined) data.imageUrl = typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null;
+  if (videoUrl !== undefined) data.videoUrl = typeof videoUrl === "string" && videoUrl.trim() ? videoUrl.trim() : null;
   const updated = await prisma.question.update({ where: { id: req.params.id }, data });
   res.json(updated);
 });
 
 // Materials management
+router.get("/skills", async (_req, res) => {
+  const skills = await prisma.skill.findMany({ orderBy: { code: "asc" } });
+  res.json(skills);
+});
+
 router.get("/materials", async (_req, res) => {
-  const materials = await prisma.material.findMany({ include: { skill: { select: { code: true, name: true } }, _count: { select: { materialRead: true } } }, orderBy: { order: "asc" } });
+  const materials = await prisma.material.findMany({ include: { skill: { select: { id: true, code: true, name: true } }, _count: { select: { materialRead: true } } }, orderBy: [{ skill: { code: "asc" } }, { order: "asc" }] });
   res.json(materials.map((m) => ({ ...m, readCount: m._count.materialRead })));
 });
 
 router.put("/materials/:id", async (req, res) => {
-  const { isActive, title, content, sections } = req.body;
+  const { isActive, title, summary, content, order, skillId, imageUrl, videoUrl, links } = req.body;
   const data: any = {};
   if (typeof isActive === "boolean") data.isActive = isActive;
-  if (title) data.title = title;
-  if (content) data.content = content;
-  if (sections) data.sections = sections;
-  const updated = await prisma.material.update({ where: { id: req.params.id }, data });
+  if (typeof title === "string" && title.trim()) data.title = title.trim();
+  if (typeof summary === "string") data.summary = summary;
+  if (typeof content === "string") data.content = content;
+  if (order !== undefined) data.order = Number(order);
+  if (typeof skillId === "string") data.skillId = skillId;
+  if (imageUrl !== undefined) data.imageUrl = typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null;
+  if (videoUrl !== undefined) data.videoUrl = typeof videoUrl === "string" && videoUrl.trim() ? videoUrl.trim() : null;
+  if (links !== undefined) data.links = links;
+  const updated = await prisma.material.update({ where: { id: req.params.id }, data, include: { skill: { select: { id: true, code: true, name: true } } } });
   res.json(updated);
 });
 
@@ -170,11 +197,21 @@ router.delete("/materials/:id", async (req, res) => {
 });
 
 router.post("/materials", async (req, res) => {
-  const { skillId, title, summary, content, order } = req.body;
+  const { skillId, title, summary, content, order, imageUrl, videoUrl, links } = req.body;
   if (!skillId || !title || !content) { res.status(422).json({ error: "skillId, title, dan content wajib diisi." }); return; }
   const m = await prisma.material.create({
-    data: { skillId, title, summary: summary ?? "", content, order: Number(order) || 1, isActive: true },
-    include: { skill: { select: { code: true, name: true } } },
+    data: {
+      skillId,
+      title,
+      summary: summary ?? "",
+      content,
+      order: Number(order) || 1,
+      isActive: true,
+      imageUrl: typeof imageUrl === "string" && imageUrl.trim() ? imageUrl.trim() : null,
+      videoUrl: typeof videoUrl === "string" && videoUrl.trim() ? videoUrl.trim() : null,
+      links: links ?? null,
+    },
+    include: { skill: { select: { id: true, code: true, name: true } } },
   });
   res.status(201).json({ ...m, readCount: 0 });
 });

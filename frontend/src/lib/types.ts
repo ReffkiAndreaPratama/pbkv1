@@ -118,11 +118,35 @@ export interface QuizQuestion {
   prompt: string;
   options: { key: string; text: string }[];
   difficulty: Difficulty;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+}
+
+export interface QuizReviewItem {
+  prompt: string;
+  options: { key: string; text: string }[];
+  selectedKeys: string[];
+  correctKeys: string[];
+  isCorrect: boolean;
+  explanation: string;
+}
+
+export interface SubmitRes {
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  passed?: boolean;
+  review?: QuizReviewItem[];
 }
 
 export interface QuizOption {
   key: string;
   text: string;
+}
+
+export interface MaterialLink {
+  title: string;
+  url: string;
 }
 
 export interface Material {
@@ -133,6 +157,9 @@ export interface Material {
   content: string;
   order: number;
   isActive: boolean;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  links?: MaterialLink[] | null;
   completed: boolean;
   readAt?: string | null;
   skill: { id: string; code: string; name: string };

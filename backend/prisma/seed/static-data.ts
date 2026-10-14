@@ -9,6 +9,36 @@ export type SeedQuestion = {
   explanation: string;
   difficulty: Difficulty;
   phases: ("PRETEST" | "POSTTEST" | "ADAPTIVE")[];
+  imageUrl?: string;
+  videoUrl?: string;
+};
+
+// Media pendukung soal per skill: gambar dibagikan berurutan, video penjelasan per skill.
+export const SKILL_QUESTION_MEDIA: Record<string, { images: string[]; video: string }> = {
+  POWER: {
+    images: ["/images/mobo.jpg", "/images/mobo.jpg", "/materials/power.jpg", "/images/mobo.jpg", "/materials/power.jpg"],
+    video: "https://www.youtube.com/watch?v=eUR9Z9YOwWY",
+  },
+  BOOT: {
+    images: ["/materials/boot.jpg", "/materials/boot.jpg", "/materials/boot.jpg", "/images/mobo.jpg", "/materials/boot.jpg"],
+    video: "https://www.youtube.com/watch?v=rhKN9WpjA4Q",
+  },
+  NETWORK: {
+    images: ["/images/lan.jpg", "/images/router.jpg", "/images/lan.jpg", "/images/router.jpg", "/images/router.jpg"],
+    video: "https://www.youtube.com/watch?v=E-VozqpxhEo",
+  },
+  STORAGE: {
+    images: ["/images/hdd.jpg", "/images/hdd.jpg", "/images/hdd.jpg", "/images/hdd.jpg", "/images/hdd.jpg"],
+    video: "https://www.youtube.com/watch?v=YWSC-NTAkYE",
+  },
+  DISPLAY: {
+    images: ["/materials/display.jpg", "/materials/display.jpg", "/materials/display.jpg", "/materials/display.jpg", "/materials/display.jpg"],
+    video: "https://www.youtube.com/watch?v=h5Tj098SLVo",
+  },
+  PERIPHERAL: {
+    images: ["/images/printer.jpg", "/images/printer.jpg", "/images/printer.jpg", "/images/keyboard.jpg", "/images/keyboard.jpg"],
+    video: "https://www.youtube.com/watch?v=E-GV3yhpSBs",
+  },
 };
 
 export const QUESTIONS: SeedQuestion[] = [
@@ -450,6 +480,8 @@ export type SeedMaterial = {
   title: string;
   summary: string;
   order: number;
+  imageUrl?: string;
+  videoUrl?: string;
   sections: { title: string; body: string }[];
 };
 
@@ -461,6 +493,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Daya & PSU — Pondasi Semua Komputer",
     summary: "Memahami aliran listrik, PSU, urutan POST, dan keselamatan kelistrikan.",
     order: 1,
+    imageUrl: "/materials/power.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=eUR9Z9YOwWY",
     sections: [
       S("Aliran Daya", "Daya dimulai dari stopkontak → PSU. PSU mengubah AC menjadi DC untuk motherboard, CPU, dan periferal. Kabel longgar = gejala 'mati total' paling umum. Urutan cek: outlet → kabel → saklar PSU → indikator. Simpan power network dalam urutan tersebut."),
       S("Urutan POST", "Saat dinyalakan, PSU memberi sinyal power-good, CPU memulai rutinitas: RAM dicek, VGA dicari, lalu BIOS mencari boot device. Kode beep/LED memberi tahu komponen mana yang gagal."),
@@ -474,6 +508,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Proses Boot & Pemulihan Windows",
     summary: "Fase boot, BSOD umum, Safe Mode, dan peralatan pemulihan OS.",
     order: 1,
+    imageUrl: "/materials/boot.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=rhKN9WpjA4Q",
     sections: [
       S("Fase Boot", "BIOS/UEFI → boot manager → kernel Windows → login. Masalah di fase awal (sebelum logo) sering hardware; sesudah logo sering software (driver/update)."),
       S("Kode BSOD umum", "0x7B = gaya boot device (mode SATA/disk). 0x7E/0x50 = driver/kernel. Catat kode — itu peta diagnosis."),
@@ -487,6 +523,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Diagnosa Jaringan Berjenjang",
     summary: "Lapis fisik → IP/DHCP → DNS → aplikasi.",
     order: 1,
+    imageUrl: "/materials/network.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=E-VozqpxhEo",
     sections: [
       S("Lapis fisik", "Kabel, port, LED, WiFi signal. LED mati saat kabel LAN = lapis fisik. Banyak masalah 'internet hilang' dimulai sini."),
       S("IP & DHCP", "ipconfig untuk melihat IP. 169.254.x.x = APIPA (DHCP tak merespon). Lease/release: ipconfig /release && /renew."),
@@ -500,6 +538,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Penyimpanan, SMART & Recovery Data",
     summary: "Membaca kesehatan disk, tanda kerusakan, dan cara menyelamatkan data.",
     order: 1,
+    imageUrl: "/materials/storage.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=YWSC-NTAkYE",
     sections: [
       S("SMART & kesehatan", "SMART mencatat sector reallocated, temperature, dan downtime. SMART bad = segera backup."),
       S("Tanda kerusakan", "Bunyi klik (head gagal), RAW partisi, file corrupt, disk 100% terus-menerus. Bedakan fisik vs filesystem."),
@@ -513,6 +553,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Jalur Sinyal Tampilan",
     summary: "GPU → kabel → layar + backlight & pengaturan sistem.",
     order: 1,
+    imageUrl: "/materials/display.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=h5Tj098SLVo",
     sections: [
       S("Jalur sinyal", "GPU render → kabel (HDMI/DP/VGA) → panel. 'No Signal' = salah satu segmen putus. Cek port GPU (jangan onboard saat GPU terpasang), lalu input monitor."),
       S("Backlight vs panel", "Layar gelap tapi gambar samar saat disenter = backlight mati. Cek kabel inverter/eDP. Layar dan eksternal hitam sekaligus = GPU."),
@@ -525,6 +567,8 @@ export const MATERIALS: SeedMaterial[] = [
     title: "Periferal & Spooler Printer",
     summary: "USB enumerasi, antrean cetak, dan deteksi perangkat.",
     order: 1,
+    imageUrl: "/materials/peripheral.jpg",
+    videoUrl: "https://www.youtube.com/watch?v=E-GV3yhpSBs",
     sections: [
       S("USB & enumerasi", "Perangkat USB perlu enumerated oleh OS. Ganti port/kabel, cek hub, lalu Device Manager untuk melihat status driver."),
       S("Antrean cetak", "Print job macet = file SPOOL menggantung. Restart Print Spooler dan bersihkan C:\\Windows\\System32\\spool\\PRINTERS."),

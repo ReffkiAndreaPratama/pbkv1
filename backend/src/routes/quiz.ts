@@ -20,13 +20,15 @@ const pick = <T>(arr: T[], n: number) => {
   return out;
 };
 
-const selectPublic = (q: { id: string; prompt: string; options: unknown; difficulty: string }) => {
+const selectPublic = (q: { id: string; prompt: string; options: unknown; difficulty: string; imageUrl: string | null; videoUrl: string | null }) => {
   const opts = (q.options ?? []) as { id?: string; key?: string; text: string }[];
   return {
     id: q.id,
     prompt: q.prompt,
     options: opts.map((o) => ({ key: o.key ?? o.id ?? "", text: o.text })),
     difficulty: q.difficulty,
+    imageUrl: q.imageUrl,
+    videoUrl: q.videoUrl,
   };
 };
 
@@ -49,6 +51,31 @@ const answerSchema = z.object({
   sessionId: z.string(),
   answers: z.array(z.object({ questionId: z.string(), selectedKeys: z.array(z.string()) })),
 });
+
+// Pembahasan per jawaban untuk layar review setelah kuis selesai.
+const buildReview = (
+  answers: { questionId: string; selectedKeys: string[] }[],
+  questions: { id: string; prompt: string; options: unknown; correctKeys: unknown; explanation: string }[]
+) => {
+  return answers
+    .map((a) => {
+      const q = questions.find((x) => x.id === a.questionId);
+      if (!q) return null;
+      const opts = (q.options ?? []) as { id?: string; key?: string; text: string }[];
+      const selected = (a.selectedKeys ?? []).slice().sort();
+      const correct = ((q.correctKeys as string[]) ?? []).slice().sort();
+      const isCorrect = JSON.stringify(selected) === JSON.stringify(correct);
+      return {
+        prompt: q.prompt,
+        options: opts.map((o) => ({ key: o.key ?? o.id ?? "", text: o.text })),
+        selectedKeys: a.selectedKeys,
+        correctKeys: q.correctKeys as string[],
+        isCorrect,
+        explanation: q.explanation,
+      };
+    })
+    .filter((r): r is NonNullable<typeof r> => r !== null);
+};
 
 router.post("/pretest/submit", async (req: any, res) => {
   const userId = req.user!.id;
@@ -85,7 +112,7 @@ router.post("/pretest/submit", async (req: any, res) => {
   await prisma.learningProfile.update({ where: { userId }, data: { pretestDone: true } });
   await awardPretestDone(userId, score);
   await checkAchievements(userId);
-  res.json({ score, correctCount, totalCount });
+  res.json({ score, correctCount, totalCount, review: buildReview(answers, questions) });
 });
 
 // --- Posttest ---
@@ -129,7 +156,7 @@ router.post("/posttest/submit", async (req: any, res) => {
   await prisma.learningProfile.update({ where: { userId }, data: { posttestDone: true, posttestScore: score } });
   await awardPosttestDone(userId, score);
   await checkAchievements(userId);
-  res.json({ score, correctCount, totalCount, passed: score >= 70 });
+  res.json({ score, correctCount, totalCount, passed: score >= 70, review: buildReview(answers, questions) });
 });
 
 // --- Adaptive ---
@@ -138,7 +165,7 @@ router.get("/adaptive", async (req, res) => {
   const where = skillId ? { skillId, isActive: true } : { isActive: true };
   const all = await prisma.question.findMany({ where });
   const qs = all.filter((q) => (q.phases as string[] ?? []).includes("ADAPTIVE"));
-  res.json(pick(qs, 5).map(selectPublic));
+  res.json(pick(qs, 10).map(selectPublic));
 });
 
 router.post("/adaptive/start", async (req: any, res) => {
@@ -169,7 +196,7 @@ router.post("/adaptive/submit", async (req: any, res) => {
   const score = Math.round((correctCount / totalCount) * 100);
   await prisma.quizSession.update({ where: { id: sessionId }, data: { completedAt: new Date(), correctCount, totalCount, score } });
   await checkAchievements(userId);
-  res.json({ score, correctCount, totalCount });
+  res.json({ score, correctCount, totalCount, review: buildReview(answers, questions) });
 });
 
 export default router;

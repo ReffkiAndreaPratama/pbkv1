@@ -1,14 +1,17 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, BrainCircuit } from "lucide-react";
+import { ArrowLeft, CheckCircle2, XCircle, ChevronRight, BrainCircuit, Play } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api";
+import { api, type SessionUser } from "@/lib/api";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { PageLoader, EmptyState } from "@/components/ui/feedback";
 import { difficultyLabel, difficultyColor, cn } from "@/lib/utils";
-import type { QuizQuestion } from "@/lib/types";
+import { embedVideoUrl } from "@/lib/media";
+import { useLeaveGuard } from "@/lib/use-leave-guard";
+import type { QuizQuestion, SubmitRes } from "@/lib/types";
 
 interface QuizRunnerProps {
   title: string;
@@ -19,17 +22,45 @@ interface QuizRunnerProps {
 }
 
 interface StartRes { sessionId: string }
-interface SubmitRes { score: number; correctCount: number; totalCount: number; passed?: boolean }
 
 const CONFIG_META = {
   PRETEST: { start: "/api/quiz/pretest/start", submit: "/api/quiz/pretest/submit", desc: "10 soal pengukuran awal" },
   POSTTEST: { start: "/api/quiz/posttest/start", submit: "/api/quiz/posttest/submit", desc: "10 soal (4 mudah · 4 sedang · 2 sulit)", pass: 70 },
-  ADAPTIVE: { start: "/api/quiz/adaptive/start", submit: "/api/quiz/adaptive/submit", desc: "5 soal mengikuti penguasaanmu" },
+  ADAPTIVE: { start: "/api/quiz/adaptive/start", submit: "/api/quiz/adaptive/submit", desc: "10 soal yang menyesuaikan penguasaanmu" },
 } as const;
 
-export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: QuizRunnerProps) {
+const MODE_META = {
+  PRETEST: {
+    label: "PRETEST · Pengukuran Awal",
+    question: "Ukur titik awalmu dengan 10 soal. Tidak ada lulus/gagal — hasilnya dipakai menyusun jalur belajarmu.",
+    finishTitle: "Pengukuran Selesai! 📊",
+    accent: "#2563eb",
+    accentDim: "#93b4f0",
+    soft: "#eff6ff",
+  },
+  ADAPTIVE: {
+    label: "LATIHAN · Kuis Adaptif",
+    question: "Soal menyesuaikan penguasaanmu. Jawab dengan tenang — pembahasan muncul setelah selesai.",
+    finishTitle: "Latihan Selesai! 🎯",
+    accent: "#059669",
+    accentDim: "#6ee7b7",
+    soft: "#ecfdf5",
+  },
+  POSTTEST: {
+    label: "POSTTEST · Uji Akhir",
+    question: "Uji pemahamanmu setelah materi & simulasi. Minimal kelulusan 70.",
+    finishTitle: "Kuis Selesai! 🏆",
+    accent: "#7c3aed",
+    accentDim: "#c4b5fd",
+    soft: "#f5f3ff",
+  },
+} as const;
+
+export function QuizRunner({ subtitle, config, skillId, onBackHref }: QuizRunnerProps) {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const meta = CONFIG_META[config];
+  const mode = MODE_META[config];
 
   const [questions, setQuestions] = useState<QuizQuestion[] | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -38,7 +69,13 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
   const [locked, setLocked] = useState(false);
   const [answers, setAnswers] = useState<{ questionId: string; selectedKeys: string[] }[]>([]);
   const [result, setResult] = useState<SubmitRes | null>(null);
-  const [wrongFlash, setWrongFlash] = useState<string | null>(null);
+  const [videoOpen, setVideoOpen] = useState(false);
+
+  useLeaveGuard(result === null && !!sessionId);
+
+  useEffect(() => {
+    setVideoOpen(false);
+  }, [idx]);
 
   useEffect(() => {
     const load = async () => {
@@ -59,14 +96,15 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
 
   if (result && result.score !== undefined) {
     const passed = result.passed ?? result.score >= 70;
+    const review = result.review ?? [];
     return (
-      <div className="animate-fade-in-up mx-auto max-w-lg pt-10">
+      <div className="animate-fade-in-up mx-auto max-w-2xl pt-10">
         <Card className="overflow-hidden">
           <div className={cn("px-6 py-8 text-center", passed ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10" : "bg-gradient-to-br from-rose-500/15 to-orange-500/10")}>
             <div className={cn("mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full bg-card shadow-lift", passed ? "text-emerald-500" : "text-rose-500")}>
               {passed ? <CheckCircle2 className="h-8 w-8" /> : <XCircle className="h-8 w-8" />}
             </div>
-            <h1 className="font-display text-2xl font-extrabold">{passed ? "Kerja Bagus! 🎉" : "Tetap Semangat!"}</h1>
+            <h1 className="font-display text-2xl font-extrabold">{passed ? mode.finishTitle : "Tetap Semangat!"}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {config === "PRETEST" && "Hasil pretest caloni jalur belajarmu."}
               {config === "POSTTEST" && (passed ? "Kamu lulus posttest! 🏆" : "Skor minimal kelulusan: 70.")}
@@ -83,10 +121,68 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
             </div>
             <div className="mt-5 flex gap-2">
               <Button asChild variant="outline" className="flex-1"><Link to={onBackHref}>Kembali</Link></Button>
-              <Button className="flex-1" onClick={() => navigate("/")}>Dashboard</Button>
+              <Button className="flex-1" onClick={() => navigate("/dashboard")}>Dashboard</Button>
             </div>
           </div>
         </Card>
+
+        {review.length > 0 && (
+          <div className="mt-8">
+            <h2 className="mb-1 font-display text-base font-bold">Pembahasan Jawaban</h2>
+            <p className="mb-4 text-xs text-muted-foreground">Pelajari dari tiap jawaban untuk naikkan penguasaanmu.</p>
+            <div className="space-y-3">
+              {review.map((r, i) => (
+                <Card key={i} className="overflow-hidden">
+                  <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-2.5">
+                    <span className="text-xs font-bold text-muted-foreground">Soal {i + 1}</span>
+                    {r.isCorrect ? (
+                      <Badge variant="success" className="gap-1"><CheckCircle2 className="h-3 w-3" /> Benar</Badge>
+                    ) : (
+                      <Badge variant="danger" className="gap-1"><XCircle className="h-3 w-3" /> Salah</Badge>
+                    )}
+                  </div>
+                  <CardContent className="p-4">
+                    <p className="text-sm font-semibold leading-snug">{r.prompt}</p>
+                    <div className="mt-3 space-y-2">
+                      {r.options.map((opt) => {
+                        const isSelected = r.selectedKeys.includes(opt.key);
+                        const isKey = r.correctKeys.includes(opt.key);
+                        return (
+                          <div
+                            key={opt.key}
+                            className={cn(
+                              "flex items-start gap-2.5 rounded-xl border p-3",
+                              isKey ? "border-emerald-300 bg-emerald-50/70" : isSelected ? "border-rose-300 bg-rose-50/70" : "border-border/60 bg-muted/20"
+                            )}
+                          >
+                            <span className={cn(
+                              "mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-[10px] font-bold",
+                              isKey ? "bg-emerald-500 text-white" : isSelected ? "bg-rose-500 text-white" : "bg-muted text-muted-foreground"
+                            )}>
+                              {opt.key.toUpperCase()}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium leading-snug">{opt.text}</p>
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {isKey && <span className="text-[10px] font-bold text-emerald-700">✓ Kunci jawaban</span>}
+                                {isSelected && !isKey && <span className="text-[10px] font-bold text-rose-700">✗ Jawabanmu</span>}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {r.explanation && (
+                      <div className="mt-3 rounded-xl bg-primary/5 px-3.5 py-2.5 text-xs leading-relaxed text-foreground/80">
+                        <span className="font-bold text-primary">Penjelasan: </span>{r.explanation}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -116,8 +212,6 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
     if (selected.length === 0 || locked) return;
     setLocked(true);
     setAnswers((a) => [...a, { questionId: q.id, selectedKeys: selected }]);
-    // Flash feedback without answer correctness known to client (server grades at end)
-    setWrongFlash(null);
     setTimeout(() => {
       if (isLast) void finish();
       else {
@@ -135,6 +229,12 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
       if (!payload.some((a) => a.questionId === q.id)) payload.push({ questionId: q.id, selectedKeys: selected });
       const res = await api.post<SubmitRes>(meta.submit, { sessionId, answers: payload });
       setResult(res);
+      try {
+        const me = await api.get<SessionUser>("/api/auth/me");
+        setUser(me);
+      } catch {
+        /* re-hydrate best effort */
+      }
       toast.success("Kuis selesai!");
     } catch (e: any) {
       toast.error(e.message || "Gagal mengirim jawaban.");
@@ -143,7 +243,7 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
   };
 
   return (
-    <div className="animate-fade-in">
+    <div className="animate-fade-in" style={{ ["--quiz-accent" as any]: mode.accent, ["--quiz-accent-dim" as any]: mode.accentDim }}>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <Button asChild variant="ghost" size="sm" className="-ml-2">
           <Link to={onBackHref}>
@@ -157,19 +257,63 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
       </div>
 
       <div className="mx-auto max-w-2xl">
+        <div className="mb-4 flex items-start gap-3 rounded-2xl border px-4 py-3" style={{ background: mode.soft, borderColor: mode.accentDim }}>
+          <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-white" style={{ background: mode.accent }}>
+            <BrainCircuit className="h-4 w-4" />
+          </span>
+          <div>
+            <div className="text-[10px] font-extrabold uppercase tracking-widest" style={{ color: mode.accent }}>{mode.label}</div>
+            <p className="mt-0.5 text-xs leading-relaxed text-foreground/80">{mode.question}</p>
+          </div>
+        </div>
+
         <div className="mb-4 flex gap-1.5">
           {questions.map((_, i) => (
-            <div key={i} className={cn("h-1.5 flex-1 rounded-full", i < idx ? "bg-primary" : i === idx ? "bg-primary/70" : "bg-muted")} />
+            <div key={i} className={cn("h-1.5 flex-1 rounded-full", i < idx ? "bg-[var(--quiz-accent)]" : i === idx ? "bg-[var(--quiz-accent-dim)]" : "bg-muted")} />
           ))}
         </div>
 
         <Card>
           <CardContent className="p-5 sm:p-7">
-            <div className="mb-1 text-xs font-bold uppercase tracking-widest text-muted-foreground">{title}</div>
+            <div className="mb-1 text-xs font-bold uppercase tracking-widest" style={{ color: "var(--quiz-accent)" }}>{mode.label}</div>
+            {subtitle && <p className="mb-3 mt-0.5 text-xs text-muted-foreground">{subtitle}</p>}
             <h2 className="font-display text-lg font-bold leading-snug sm:text-xl">{q.prompt}</h2>
             <div className="mt-2">
               <Badge className={difficultyColor(q.difficulty)}>{difficultyLabel(q.difficulty)}</Badge>
             </div>
+
+            {(q.imageUrl || q.videoUrl) && (
+              <div className="mt-4 space-y-3">
+                {q.imageUrl && (
+                  <div className="overflow-hidden rounded-2xl border border-border/60">
+                    <img src={q.imageUrl} alt="Ilustrasi pendukung soal" className="h-44 w-full object-cover sm:h-56" loading="lazy" />
+                  </div>
+                )}
+                {q.videoUrl && embedVideoUrl(q.videoUrl) && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => setVideoOpen((v) => !v)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-border/70 bg-muted/50 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-primary/40"
+                    >
+                      <Play size={15} className="text-primary" />
+                      {videoOpen ? "Sembunyikan video penjelasan" : "Tonton video penjelasan"}
+                    </button>
+                    {videoOpen && (
+                      <div className="mt-2 aspect-video w-full overflow-hidden rounded-2xl border border-border/60 bg-black">
+                        <iframe
+                          src={embedVideoUrl(q.videoUrl)!}
+                          title="Video penjelasan soal"
+                          className="h-full w-full"
+                          allowFullScreen
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <div className="mt-5 space-y-2.5">
               {options.map((opt) => (
@@ -195,10 +339,6 @@ export function QuizRunner({ title, subtitle, config, skillId, onBackHref }: Qui
                 </button>
               ))}
             </div>
-
-            {wrongFlash && (
-              <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">{wrongFlash}</p>
-            )}
 
             <div className="mt-6 flex justify-end">
               <Button onClick={submitAnswer} disabled={selected.length === 0 || locked} className="gap-1.5">

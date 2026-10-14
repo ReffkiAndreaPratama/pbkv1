@@ -1,207 +1,217 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { MonitorCog, LogOut, Sparkles } from "lucide-react";
+import { ChevronRight, LayoutDashboard, LogOut, Menu, X, UserRound, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { navGroups, bottomNav, accentColor } from "./nav";
-import { Button } from "@/components/ui/button";
+import { adminNavItems, navItems } from "./nav";
+import { Logo } from "./logo";
 import { useAuth } from "@/lib/auth";
+import { useJalur, jalurLabel } from "@/lib/learning-path";
 import { AITutorWidget } from "@/components/layout/ai-tutor-widget";
+import { InstallBanner } from "@/components/layout/install-banner";
 
-function AmbientBackground() {
-  return (
-    <div aria-hidden className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
-      <div className="absolute -top-40 right-[-8%] h-[440px] w-[440px] rounded-full bg-primary/15 blur-3xl animate-blob" />
-      <div
-        className="absolute top-1/3 left-[-10%] h-[380px] w-[380px] rounded-full bg-circuit/15 blur-3xl animate-blob"
-        style={{ animationDelay: "-6s" }}
-      />
-      <div
-        className="absolute bottom-[-12%] right-1/4 h-[400px] w-[400px] rounded-full bg-tech/10 blur-3xl animate-blob"
-        style={{ animationDelay: "-12s" }}
-      />
-      <div className="absolute inset-0 bg-grid opacity-60" />
-    </div>
-  );
-}
+const ROUTE_TITLES: { match: RegExp; title: string }[] = [
+  { match: /^\/dashboard$/, title: "Dashboard" },
+  { match: /^\/practice$/, title: "Latihan" },
+  { match: /^\/evaluation$/, title: "Evaluasi" },
+  { match: /^\/profile$/, title: "Profil Saya" },
+  { match: /^\/adaptive$/, title: "Kuis Adaptif" },
+  { match: /^\/ai$/, title: "AI Tutor" },
+  { match: /^\/cases$/, title: "Simulasi Kasus" },
+  { match: /^\/cases\/.+/, title: "Detail Kasus" },
+  { match: /^\/simulation\/.+/, title: "Simulasi" },
+  { match: /^\/materials$/, title: "Materi Pembelajaran" },
+  { match: /^\/materials\/.+/, title: "Detail Materi" },
+  { match: /^\/quiz\//, title: "Kuis" },
+  { match: /^\/progress$/, title: "Progres Belajar" },
+  { match: /^\/achievements$/, title: "Pencapaian" },
+  { match: /^\/leaderboard$/, title: "Papan Peringkat" },
+  { match: /^\/admin/, title: "Panel Admin" },
+];
 
 export function AppShell() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [kursorLoader, setKursorLoader] = useState(false);
-
+  const { jalur } = useJalur();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [navigating, setNavigating] = useState(false);
+  const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
   const isAdmin = user?.role === "ADMIN";
+
+  useEffect(() => {
+    const sync = () => setOnline(navigator.onLine);
+    window.addEventListener("online", sync);
+    window.addEventListener("offline", sync);
+    return () => {
+      window.removeEventListener("online", sync);
+      window.removeEventListener("offline", sync);
+    };
+  }, []);
+
+  useEffect(() => {
+  setMobileOpen(false);
+}, [location.pathname]);
+
+  useEffect(() => {
+    const match = ROUTE_TITLES.find((r) => r.match.test(location.pathname));
+    document.title = match ? `${match.title} · TechTutor` : "TechTutor — Adaptive IT Troubleshooting Lab";
+  }, [location.pathname]);
+
+  const pathProgress = Math.min(100, Math.round(((user?.profile?.level ?? 1) / 10) * 100));
+  const initials = (user?.name || "U")
+    .split(" ")
+    .map((w) => w.charAt(0))
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  useEffect(() => {
-    setKursorLoader(false);
-  }, [location.pathname]);
+  const linkClass = ({ isActive }: { isActive: boolean }) => cn("nav-item", isActive && "active");
 
   return (
-    <div className="relative min-h-screen bg-background">
-      <AmbientBackground />
-
-      {/* Desktop sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-border/70 bg-card/85 backdrop-blur-xl lg:flex">
-        <div className="flex h-16 items-center gap-2.5 border-b px-5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-cyan-600 to-circuit text-white shadow-glow">
-            <MonitorCog className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="font-display text-[15px] font-extrabold leading-tight">
-              Tech<span className="text-gradient">Tutor</span>
-            </div>
-            <div className="text-[11px] text-muted-foreground leading-tight">IT Troubleshooting Lab</div>
-          </div>
+    <div className="app-shell">
+      <aside className={cn("sidebar", mobileOpen && "sidebar-open")}>
+        <div className="sidebar-top">
+          <Logo inverse onClick={() => navigate("/")} />
+          <button className="mobile-close" onClick={() => setMobileOpen(false)} type="button" aria-label="Tutup menu">
+            <X size={18} />
+          </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-4 no-scrollbar">
-          {navGroups.map((group) => (
-            <div key={group.label} className="mb-5">
-              <div className="px-3 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground/80">{group.label}</div>
-              <div className="space-y-0.5">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.path}
-                    to={item.path}
-                    end={item.path === "/"}
-                    className={({ isActive }) =>
-                      cn(
-                        "group relative flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-all",
-                        isActive
-                          ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.18)]"
-                          : "text-foreground/75 hover:bg-accent/70 hover:text-foreground"
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <span
-                          className={cn(
-                            "absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-primary transition-all",
-                            isActive ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <item.icon
-                          className={cn(
-                            "h-4 w-4",
-                            isActive ? "text-primary" : item.accent ? cn(accentColor[item.accent]?.split(" ")[0], "opacity-80") : "text-muted-foreground"
-                          )}
-                        />
-                        {item.title}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
+        <nav className="side-nav" aria-label="Navigasi utama">
+          <span className="nav-label">MENU UTAMA</span>
+          {navItems.map((item) => (
+            <NavLink className={linkClass} end={item.end} key={item.path} to={item.path}>
+              <item.icon size={19} />
+              <span>{item.title}</span>
+            </NavLink>
           ))}
+
           {isAdmin && (
-            <div className="mb-5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-2">
-              <NavLink
-                to="/admin"
-                end
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-semibold transition-all",
-                    isActive ? "bg-cyan-500/15 text-cyan-700" : "text-foreground/75 hover:bg-accent/70"
-                  )
-                }
-              >
-                <ShieldAdmin />
-                Panel Admin
-              </NavLink>
-              <div className="mt-1 space-y-0.5">
-                {([
-                  { title: "Pengguna", path: "/admin/users" },
-                  { title: "Kasus", path: "/admin/cases" },
-                  { title: "Soal", path: "/admin/questions" },
-                  { title: "Materi", path: "/admin/materials" },
-                ] as const).map((it) => (
-                  <NavLink
-                    key={it.path}
-                    to={it.path}
-                    className={({ isActive }) =>
-                      cn(
-                        "block rounded-lg px-3 py-1.5 text-xs font-medium transition-all",
-                        isActive ? "bg-cyan-500/10 text-cyan-700" : "text-muted-foreground hover:text-foreground"
-                      )
-                    }
-                  >
-                    {it.title}
-                  </NavLink>
-                ))}
-              </div>
-            </div>
+            <>
+              <span className="nav-label mt-6">ADMIN</span>
+              {adminNavItems.map((item) => (
+                <NavLink className={linkClass} end={item.end} key={item.path} to={item.path}>
+                  <item.icon size={19} />
+                  <span>{item.title}</span>
+                </NavLink>
+              ))}
+            </>
           )}
         </nav>
 
-        <div className="border-t p-4">
-          <div className="flex items-center gap-3 rounded-xl bg-gradient-to-r from-primary/10 to-circuit/10 p-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-circuit text-sm font-bold text-white shadow-sm">
-              {user?.name?.charAt(0) || "U"}
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="truncate text-sm font-semibold">{user?.name}</div>
-              <div className="truncate text-xs text-muted-foreground">
-                Level {user?.profile?.level ?? 1} · {user?.profile?.totalXp ?? 0} XP
-              </div>
-            </div>
-            <Button variant="ghost" size="iconSm" onClick={handleLogout} aria-label="Keluar">
-              <LogOut className="h-4 w-4" />
-            </Button>
+        <div className="sidebar-progress">
+          <div className="mini-progress-head">
+            <span>Progress jalur</span>
+            <strong>{pathProgress}%</strong>
           </div>
+          <div className="progress-track dark">
+            <span style={{ width: `${pathProgress}%` }} />
+          </div>
+          <p>
+            {jalurLabel(jalur)} · Level {user?.profile?.level ?? 1} · {user?.profile?.totalXp ?? 0} XP
+          </p>
         </div>
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="sticky top-0 z-40 flex h-14 items-center gap-2 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl lg:hidden">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary via-cyan-600 to-circuit text-white shadow-glow">
-          <MonitorCog className="h-4 w-4" />
-        </div>
-        <span className="font-display font-extrabold">
-          Tech<span className="text-gradient">Tutor</span>
-        </span>
-      </header>
+      <div className="app-main">
+        <header className="topbar">
+          <button className="menu-button" onClick={() => setMobileOpen(true)} type="button" aria-label="Buka menu">
+            <Menu size={20} />
+          </button>
+          <div className="topbar-copy">
+            <span>Jalur aktif</span>
+            <strong>{jalurLabel(jalur)}</strong>
+          </div>
+          <div className="profile-wrap">
+            <button className="profile-button" onClick={() => setProfileOpen((v) => !v)} type="button">
+              <span className="avatar">{initials}</span>
+              <span className="profile-name">
+                <strong>{user?.name}</strong>
+                <small>{isAdmin ? "Administrator" : "Pelajar"}</small>
+              </span>
+              <ChevronRight size={16} />
+            </button>
+            {profileOpen && (
+              <div className="profile-popover">
+                <div>
+                  <strong>{user?.name}</strong>
+                  <span>{user?.email}</span>
+                </div>
+                <button onClick={() => { setProfileOpen(false); navigate("/profile"); }} type="button">
+                  <UserRound size={17} /> Profil Saya
+                </button>
+                <button onClick={() => { setProfileOpen(false); navigate("/progress"); }} type="button">
+                  <Activity size={17} /> Progres Belajar
+                </button>
+                {isAdmin && (
+                  <button onClick={() => { setProfileOpen(false); navigate("/admin"); }} type="button">
+                    <LayoutDashboard size={17} /> Panel Admin
+                  </button>
+                )}
+                <button onClick={handleLogout} type="button">
+                  <LogOut size={17} /> Keluar
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
 
-      {/* Content */}
-      <main className="relative z-10 px-4 pb-24 pt-5 sm:px-6 lg:ml-64 lg:px-10 lg:pb-10 lg:pt-8">
-        <div className="mx-auto max-w-6xl">
+        {!online && (
+          <div className="network-error-banner" role="alert">
+            <X size={18} />
+            <div>
+              <strong>Koneksi jaringan terputus.</strong>
+              <span>Beberapa konten mungkin tidak dapat dimuat atau disimpan.</span>
+            </div>
+            <button onClick={() => setOnline(navigator.onLine)} type="button">Coba Lagi</button>
+          </div>
+        )}
+
+        <InstallBanner />
+
+        <main className="page-content">
           <Outlet />
-        </div>
-      </main>
+        </main>
+      </div>
 
-      <AITutorWidget onNavigating={() => setKursorLoader(true)} />
-
-      {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/85 backdrop-blur-xl lg:hidden">
-        <div className="mx-auto flex max-w-md items-center justify-around px-2 py-1.5">
-          {bottomNav.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === "/"}
-              className={({ isActive }) =>
-                cn(
-                  "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-semibold transition-colors",
-                  isActive ? "text-primary" : "text-muted-foreground"
-                )
-              }
-            >
-              <item.icon className="h-5 w-5" />
-              {item.title}
-            </NavLink>
-          ))}
-        </div>
+      <nav className="mobile-bottom-nav" aria-label="Navigasi utama mobile">
+        {navItems.map((item) => (
+          <NavLink
+            className={({ isActive }) => (isActive ? "active" : "")}
+            end={item.end}
+            key={item.path}
+            to={item.path}
+          >
+            <item.icon size={19} />
+            <span>{item.title}</span>
+          </NavLink>
+        ))}
       </nav>
+
+      <AITutorWidget onNavigating={() => setNavigating(true)} />
+
+      {navigating && (
+        <div className="learning-loading-overlay">
+          <div className="loading-card panel">
+            <span className="loading-spinner" />
+            <strong>Menyiapkan halaman</strong>
+            <p>Memuat data pembelajaran sesuai konteksmu...</p>
+            <div className="loading-lines">
+              <i />
+              <i />
+              <i />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {mobileOpen && <button className="scrim" onClick={() => setMobileOpen(false)} type="button" aria-label="Tutup menu" />}
     </div>
   );
-}
-
-function ShieldAdmin() {
-  return <Sparkles className="h-4 w-4 text-cyan-600" />;
 }
