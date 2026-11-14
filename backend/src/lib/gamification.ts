@@ -55,6 +55,11 @@ export async function checkAchievements(userId: string) {
 
   const quizCorrectCount = await prisma.quizAnswer.count({ where: { session: { userId }, isCorrect: true } });
 
+  const repairSuccessCount = await prisma.repairAttempt.count({ where: { userId, success: true } });
+  const repairPerfectCount = await prisma.repairAttempt.count({
+    where: { userId, success: true, wrongActions: 0, score: { gte: 88 } },
+  });
+
   const achievements = await prisma.achievement.findMany();
   const existing = await prisma.userAchievement.findMany({ where: { userId }, select: { achievementId: true } });
   const owned = new Set(existing.map((e) => e.achievementId));
@@ -70,6 +75,8 @@ export async function checkAchievements(userId: string) {
     STREAK: profile.streakDays,
     LEVEL: profile.level,
     POSTTEST_PASS: profile.posttestDone && (profile.posttestScore ?? 0) >= 70 ? 1 : 0,
+    REPAIR_SUCCESS: repairSuccessCount,
+    REPAIR_PERFECT: repairPerfectCount,
   } as Record<string, number>;
 
   const newly: string[] = [];

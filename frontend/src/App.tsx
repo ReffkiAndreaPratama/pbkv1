@@ -18,6 +18,8 @@ import { AiTutorPage } from "@/pages/ai-tutor";
 import { CasesPage } from "@/pages/cases/index";
 import { CaseDetailPage } from "@/pages/cases/detail";
 import { SimulationPage } from "@/pages/simulation";
+import { RepairIndexPage } from "@/pages/repair/index";
+import { RepairPlayPage } from "@/pages/repair/play";
 import { MaterialsPage } from "@/pages/materials/index";
 import { MaterialDetailPage } from "@/pages/materials/detail";
 import { PretestPage } from "@/pages/quiz/pretest";
@@ -111,6 +113,8 @@ export default function App() {
             <Route path="/cases" element={<CasesPage />} />
             <Route path="/cases/:id" element={<CaseDetailPage />} />
             <Route path="/simulation/:attemptId" element={<SimulationPage />} />
+            <Route path="/repair" element={<RepairIndexPage />} />
+            <Route path="/repair/:attemptId" element={<RepairPlayPage />} />
             <Route path="/materials" element={<MaterialsPage />} />
             <Route path="/materials/:id" element={<MaterialDetailPage />} />
             <Route path="/quiz/pretest" element={<PretestPage />} />

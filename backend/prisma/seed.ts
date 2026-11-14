@@ -4,12 +4,16 @@ import { CASES, SKILLS, type SeedCase } from "./seed/cases-data";
 import { QUESTIONS, MATERIALS, ACHIEVEMENTS, SKILL_QUESTION_MEDIA } from "./seed/static-data";
 import { EXTRA_QUESTIONS, EXTRA_MATERIALS } from "./seed/static-data-extra";
 import { EXTRA_CASES } from "./seed/cases-data-extra";
+import { REPAIR_JOBS, type SeedRepairJob } from "./seed/repair-data";
 
 const prisma = new PrismaClient();
 
 async function wipe() {
   // Delete in dependency order (children first).
   await prisma.$transaction([
+    prisma.repairAttempt.deleteMany(),
+    prisma.repairComponent.deleteMany(),
+    prisma.repairJob.deleteMany(),
     prisma.caseOption.deleteMany(),
     prisma.caseNode.deleteMany(),
     prisma.caseModel.deleteMany(),
@@ -88,6 +92,39 @@ async function seedCase(c: SeedCase, skillId: (code: string) => string) {
         },
       });
     }
+  }
+}
+
+async function seedRepairJob(job: SeedRepairJob, skillId: (code: string) => string, order: number) {
+  const created = await prisma.repairJob.create({
+    data: {
+      skillId: skillId(job.skill),
+      title: job.title,
+      scenario: job.scenario,
+      symptom: job.symptom,
+      difficulty: job.difficulty,
+      timeLimitSec: job.timeLimitSec,
+      maxHearts: job.maxHearts,
+      order,
+    },
+  });
+
+  for (const c of job.components) {
+    await prisma.repairComponent.create({
+      data: {
+        jobId: created.id,
+        key: c.key,
+        name: c.name,
+        category: c.category,
+        slot: c.slot,
+        isFaulty: c.isFaulty ?? false,
+        fixType: c.fixType,
+        faultLabel: c.faultLabel ?? null,
+        inspectClue: c.inspectClue,
+        readings: c.readings ?? {},
+        replacementName: c.replacementName ?? null,
+      },
+    });
   }
 }
 
@@ -188,6 +225,11 @@ async function main() {
     await seedCase(c, skillId);
   }
 
+  console.log("🛠️  seeding repair jobs (Bengkel PC)...");
+  for (let i = 0; i < REPAIR_JOBS.length; i++) {
+    await seedRepairJob(REPAIR_JOBS[i], skillId, i);
+  }
+
   console.log("📚 seeding materials...");
   for (const m of [...MATERIALS, ...EXTRA_MATERIALS]) {
     const content = m.sections.map((s) => `## ${s.title}\n\n${s.body}`).join("\n\n");
@@ -232,6 +274,8 @@ async function main() {
     cases: await prisma.caseModel.count(),
     nodes: await prisma.caseNode.count(),
     options: await prisma.caseOption.count(),
+    repairJobs: await prisma.repairJob.count(),
+    repairComponents: await prisma.repairComponent.count(),
     questions: await prisma.question.count(),
     materials: await prisma.material.count(),
     achievements: await prisma.achievement.count(),

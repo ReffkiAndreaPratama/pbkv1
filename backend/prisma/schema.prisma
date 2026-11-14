@@ -46,6 +46,12 @@ enum SimStatus {
   ABANDONED
 }
 
+enum RepairStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
 enum NodeType {
   START
   DIAGNOSTIC
@@ -79,6 +85,7 @@ model User {
   skillMastery       SkillMastery[]
   materialReads      MaterialRead[]
   simulationAttempts SimulationAttempt[]
+  repairAttempts     RepairAttempt[]
   quizSessions       QuizSession[]
   activityLog        ActivityLog[]
   userAchievements   UserAchievement[]
@@ -112,6 +119,7 @@ model Skill {
 
   materials       Material[]
   cases           CaseModel[]
+  repairJobs      RepairJob[]
   questions       Question[]
   skillMastery    SkillMastery[]
 }
@@ -336,4 +344,73 @@ model UserAchievement {
   achievement Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
 
   @@unique([userId, achievementId])
+}
+
+// ============================================================
+// Bengkel PC — hands-on repair simulation (gamified workbench)
+// ============================================================
+
+model RepairJob {
+  id           String     @id @default(cuid())
+  skillId      String
+  title        String
+  scenario     String
+  symptom      String
+  difficulty   Difficulty @default(MEDIUM)
+  timeLimitSec Int        @default(180)
+  maxHearts    Int        @default(3)
+  order        Int        @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+
+  skill      Skill             @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  components RepairComponent[]
+  attempts   RepairAttempt[]
+
+  @@index([skillId])
+}
+
+model RepairComponent {
+  id              String  @id @default(cuid())
+  jobId           String
+  key             String
+  name            String
+  category        String
+  slot            String
+  isFaulty        Boolean @default(false)
+  fixType         String  // REPLACE | RESEAT | CLEAN | RECONNECT
+  faultLabel      String?
+  inspectClue     String
+  readings        Json?   // { VISUAL?: string, MULTIMETER?: string, POST_CARD?: string, SOFTWARE?: string }
+  replacementName String?
+
+  job RepairJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@unique([jobId, key])
+}
+
+model RepairAttempt {
+  id             String       @id @default(cuid())
+  userId         String
+  jobId          String
+  status         RepairStatus @default(IN_PROGRESS)
+  startedAt      DateTime     @default(now())
+  completedAt    DateTime?
+  hearts         Int          @default(3)
+  combo          Int          @default(0)
+  maxCombo       Int          @default(0)
+  actions        Int          @default(0)
+  correctActions Int          @default(0)
+  wrongActions   Int          @default(0)
+  timeSec        Int          @default(0)
+  score          Float?
+  success        Boolean?
+  fixedKeys      Json?        // string[] komponen yang sudah diperbaiki
+  inspectedKeys  Json?        // string[] komponen yang sudah diinspeksi
+  testedKeys     Json?        // { [componentKey]: string[] } tool yang sudah dipakai
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  job  RepairJob @relation(fields: [jobId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

@@ -27,6 +27,7 @@ export const navItems: NavItem[] = [
   { title: "Materi", path: "/materials", icon: BookOpenText },
   { title: "Latihan", path: "/practice", icon: ListChecks },
   { title: "Simulasi", path: "/cases", icon: MonitorCog },
+  { title: "Bengkel", path: "/repair", icon: Wrench },
   { title: "Evaluasi", path: "/evaluation", icon: Target },
   { title: "Profil", path: "/profile", icon: UserRound },
 ];

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, Brain, CheckCircle2, ClipboardList, MonitorCog, Target, Trophy } from "lucide-react";
+import { ArrowRight, BookOpenText, Brain, CheckCircle2, ClipboardList, MonitorCog, Target, Trophy, Wrench } from "lucide-react";
 import { api } from "@/lib/api";
 import { getJalur } from "@/lib/learning-path";
 import { PageLoader } from "@/components/ui/feedback";
@@ -128,6 +128,28 @@ export function PracticePage() {
           </div>
           <Link className="btn btn-secondary full-button" to="/quiz/posttest">
             Mulai Posttest <ArrowRight size={17} />
+          </Link>
+        </article>
+
+        <article className="panel practice-category-card">
+          <div className="practice-card-top">
+            <span className="practice-category-icon">
+              <Wrench size={21} />
+            </span>
+            <span className="status status-developing">Praktik</span>
+          </div>
+          <h3>Bengkel PC</h3>
+          <p>Simulasi perbaikan langsung: inspeksi komponen, pakai alat ukur, ganti bagian rusak, lalu tes nyala.</p>
+          <div className="practice-card-progress">
+            <div className="inline-progress">
+              <div className="progress-track">
+                <span style={{ width: "100%" }} />
+              </div>
+              <strong>6 misi</strong>
+            </div>
+          </div>
+          <Link className="btn btn-primary full-button" to="/repair">
+            Masuk Bengkel <ArrowRight size={17} />
           </Link>
         </article>
       </div>

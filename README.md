@@ -1,6 +1,6 @@
 # TechTutor
 
-Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Komputer**. Siswa belajar mendiagnosis dan memperbaiki komputer/PC lewat simulasi kasus interaktif (decision-tree), kuis adaptif per-skill, materi bacaan, tutor AI berbasis template (mock), dan gamification (XP, level, streak, achievements, leaderboard).
+Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Komputer**. Siswa belajar mendiagnosis dan memperbaiki komputer/PC lewat simulasi kasus interaktif (decision-tree), **simulasi perbaikan langsung "Bengkel PC"** (inspeksi komponen, alat ukur, tindakan perbaikan, tes nyala), kuis adaptif per-skill, materi bacaan, tutor AI berbasis template (mock), dan gamification (XP, level, streak, achievements, leaderboard).
 
 ## Demo account
 
@@ -10,7 +10,7 @@ Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Ko
 | Siswa | `demo1@techtutor.app`    | `demo1234` |
 | Siswa | `demo2@techtutor.app`    | `demo1234` |
 
-Database telah di-seed dengan **6 skill, 20 kasus simulasi (220 node), 30 soal kuis, 6 materi, 12 achievement, dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
+Database telah di-seed dengan **6 skill, 32 kasus simulasi (350 node), 54 soal kuis, 24 materi, 15 achievement, 6 misi Bengkel PC (38 komponen), dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
 
 ## Stack
 
@@ -27,19 +27,19 @@ Database telah di-seed dengan **6 skill, 20 kasus simulasi (220 node), 30 soal k
 techtutor/
 ├── backend/                  # Express REST API
 │   ├── prisma/
-│   │   ├── schema.prisma     # Skema DB (17 model)
+│   │   ├── schema.prisma     # Skema DB (20 model)
 │   │   ├── seed.ts           # Seed idempoten (wipe → insert)
-│   │   └── seed/             # data kasus, soal, materi, achievement
+│   │   └── seed/             # data kasus, soal, materi, achievement, misi bengkel
 │   └── src/
 │       ├── index.ts          # Bootstrap app
 │       ├── config.ts         # Env config
 │       ├── middleware/       # auth (requireAuth/requireAdmin), error, validate
-│       ├── routes/           # auth, profile, quiz, cases, simulation, materials, ai, progress, admin
-│       └── lib/              # adaptive (mastery/XPA), scoring, hint, ai-tutor, gamification
+│       ├── routes/           # auth, profile, quiz, cases, simulation, repair, materials, ai, progress, admin
+│       └── lib/              # adaptive (mastery/XPA), scoring, repair-scoring, hint, ai-tutor, gamification
 ├── frontend/
 │   ├── index.html
 │   └── src/
-│       ├── pages/           # Satu file per route (~21 halaman)
+│       ├── pages/           # Satu file per route (~23 halaman, termasuk repair/)
 │       ├── components/      # ui/ primitives, layout/ (app-shell, nav, ai-tutor-widget)
 │       └── lib/             # types.ts, auth.tsx, api.ts, utils.ts
 └── tests/                   # Unit test engine inti
@@ -87,6 +87,7 @@ npm run test
 | Quiz | `GET/POST /api/quiz/{pretest,posttest,adaptive}` · `/start` · `/submit` | Mastery diinisialisasi/diperbarui per jawaban |
 | Cases | `GET /api/cases` · `/path` · `/history` · `/:id` · `/:id/start` | Rekomendasi adaptif per skill |
 | Simulation | `GET /api/simulation/:attemptId` · `submit` · `hint` · `abandon` | Decision tree: condition/effect, SOL/FAIL, skor metrik |
+| Bengkel PC | `GET /api/repair/jobs` · `/jobs/:id` · `POST /jobs/:id/start` · `GET /attempts/:id` · `POST /attempts/:id/action` · `abandon` | Simulasi perbaikan: INSPECT, TEST (VISUAL/MULTIMETER/POST_CARD/SOFTWARE), FIX (REPLACE/RESEAT/CLEAN/RECONNECT), POWER_TEST; nyawa, combo, timer, skor/grade/bintang |
 | Materials | `GET /api/materials` · `/:id` · `POST /:id/read` | Tandai selesai +15 XP |
 | AI Tutor | `POST /api/ai/chat` | Router intent deterministik (cheat → socratic, konsep, hint, gejala); tidak pernah spoiler jawaban |
 | Progress | `GET /api/progress/{mastery,summary,activity,achievements,leaderboard}` | Satu sumber penghitung XP/level (learningProfile) |
@@ -100,11 +101,12 @@ npm run test
 
 ## Fitur utama
 
-- **Simulator troubleshooting** — 20 kasus realistis dengan pohon keputusan bercabang; siswa memilih langkah diagnosis/tindakan, sistem menerapkan `condition`/`effect` sinyal, hingga mencapai SOL atau FAIL; skor dihitung dari akurasi, efisiensi langkah, waktu, dan penalti hint.
+- **Simulator troubleshooting** — 32 kasus realistis dengan pohon keputusan bercabang; siswa memilih langkah diagnosis/tindakan, sistem menerapkan `condition`/`effect` sinyal, hingga mencapai SOL atau FAIL; skor dihitung dari akurasi, efisiensi langkah, waktu, dan penalti hint.
+- **Bengkel PC (simulasi perbaikan)** — 6 misi praktik langsung (satu per skill) di meja kerja interaktif: pilih komponen, inspeksi visual, ukur dengan multimeter/POST card/diagnostik software, lalu lakukan tindakan perbaikan yang tepat (ganti, reseat, bersihkan, sambung ulang) dan tekan **Tes Nyala**. Gamifikasi: 3 nyawa, combo multiplier, countdown, bintang, grade S–D, XP, mastery per skill, dan 3 achievement teknisi. Data komponen rusak tidak pernah bocor ke klien sebelum didiagnosis.
 - **Hint bertahap 4 level** — dari pemancing socratic hingga jawaban penuh ("Jawab Langsung" terekam), memengaruhi skor.
 - **Adaptive path** — rekomendasi kasus/kuis/material per skill berdasarkan mastery (deterministik untuk input sama).
 - **AI Tutor (mock)** — router intent deterministik: menolak permintaan spoiler, memberi pertanyaan pemancing/hint, tidak pernah membocorkan jawaban.
-- **Gamification** — XP, level, streak harian, 12 achievement, leaderboard, konsisten dari satu sumber (learningProfile).
+- **Gamification** — XP, level, streak harian, 15 achievement, leaderboard, konsisten dari satu sumber (learningProfile).
 - **Panel admin** — statistik platform, manajemen CRUD kasus/soal/materi, toggle aktif/nonaktif, reset progress per pengguna.
 
 ## Roadmap / TODO hidup

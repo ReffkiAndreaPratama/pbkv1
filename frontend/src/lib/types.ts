@@ -226,6 +226,92 @@ export interface SimHistoryRow {
   startedAt: string;
 }
 
+// ---------------------------------------------------------------- Bengkel PC
+export type RepairTool = "VISUAL" | "MULTIMETER" | "POST_CARD" | "SOFTWARE";
+export type RepairFixType = "REPLACE" | "RESEAT" | "CLEAN" | "RECONNECT";
+export type RepairStatus = "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
+
+export interface RepairJobListItem {
+  id: string;
+  title: string;
+  symptom: string;
+  difficulty: Difficulty;
+  timeLimitSec: number;
+  maxHearts: number;
+  skill: { code: string; name: string };
+  bestScore: number | null;
+  attempts: number;
+  successCount: number;
+}
+
+export interface RepairComponentState {
+  key: string;
+  name: string;
+  category: string;
+  slot: string;
+  replacementName: string | null;
+  fixed: boolean;
+  inspected: boolean;
+  clue: string | null;
+  testedTools: string[];
+  readings: Record<string, string>;
+}
+
+export interface RepairAttemptState {
+  id: string;
+  status: RepairStatus;
+  elapsedSec: number;
+  timeLeftSec: number;
+  job: {
+    id: string;
+    title: string;
+    scenario: string;
+    symptom: string;
+    difficulty: Difficulty;
+    timeLimitSec: number;
+    maxHearts: number;
+    skill: { code: string; name: string };
+  };
+  hearts: number;
+  combo: number;
+  maxCombo: number;
+  actions: number;
+  correctActions: number;
+  wrongActions: number;
+  faultsTotal: number;
+  faultsFixed: number;
+  components: RepairComponentState[];
+}
+
+export interface RepairEvent {
+  kind: string;
+  ok: boolean;
+  title: string;
+  message: string;
+  componentKey?: string;
+  reading?: string;
+  heartsLost?: number;
+}
+
+export interface RepairResult {
+  score: number;
+  accuracy: number;
+  speed: number;
+  comboBonus: number;
+  heartBonus: number;
+  grade: string;
+  stars: number;
+  success: boolean;
+  xpGained: number;
+  timeSec: number;
+}
+
+export interface RepairActionResponse {
+  event: RepairEvent;
+  state: RepairAttemptState;
+  result?: RepairResult;
+}
+
 export interface SummaryData {
   profile: LearningProfile;
   totalCases: number;

@@ -600,4 +600,7 @@ export const ACHIEVEMENTS: SeedAchievement[] = [
   { code: "LEVEL_5", name: "Level 5", description: "Mencapai level 5.", icon: "rocket", condition: { type: "LEVEL", count: 5 }, xpReward: 50 },
   { code: "SPEEDRUN", name: "Runner", description: "Selesaikan kasus MEDIUM dalam setengah waktu yang diharapkan.", icon: "timer", condition: { type: "SIM_UNDER_HALF_TIME", count: 1 }, xpReward: 40 },
   { code: "GRADUATE", name: "Lulus TechTutor", description: "Lulus posttest dengan skor ≥ 70.", icon: "award", condition: { type: "POSTTEST_PASS", count: 1 }, xpReward: 100 },
+  { code: "REPAIR_FIRST", name: "Teknisi Bengkel", description: "Selesaikan 1 misi perbaikan di Bengkel PC.", icon: "wrench", condition: { type: "REPAIR_SUCCESS", count: 1 }, xpReward: 30 },
+  { code: "REPAIR_PERFECT", name: "Tangan Emas", description: "Selesaikan misi perbaikan tanpa salah tindakan.", icon: "hand", condition: { type: "REPAIR_PERFECT", count: 1 }, xpReward: 50 },
+  { code: "REPAIR_5", name: "Kepala Bengkel", description: "Selesaikan 5 misi perbaikan dengan sukses.", icon: "medal", condition: { type: "REPAIR_SUCCESS", count: 5 }, xpReward: 80 },
 ];
