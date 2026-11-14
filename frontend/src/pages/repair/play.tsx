@@ -145,16 +145,20 @@ export function RepairPlayPage() {
   }, [attemptId]);
 
   // resync countdown when server state changes
+  const stateId = state?.id ?? null;
+  const stateStatus = state?.status ?? null;
+  const stateTimeLeft = state?.timeLeftSec ?? null;
+
   useEffect(() => {
-    if (state) setTimeLeft(state.timeLeftSec);
-  }, [state?.timeLeftSec, state?.id]);
+    if (stateTimeLeft !== null) setTimeLeft(stateTimeLeft);
+  }, [stateTimeLeft, stateId]);
 
   // tick
   useEffect(() => {
-    if (!state || state.status !== "IN_PROGRESS" || result) return;
+    if (stateStatus !== "IN_PROGRESS" || result) return;
     const t = setInterval(() => setTimeLeft((v) => Math.max(0, v - 1)), 1000);
     return () => clearInterval(t);
-  }, [state?.id, state?.status, result]);
+  }, [stateId, stateStatus, result]);
 
   const act = useCallback(
     async (payload: Record<string, unknown>) => {
