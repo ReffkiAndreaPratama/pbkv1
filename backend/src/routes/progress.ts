@@ -44,6 +44,13 @@ router.get("/summary", async (req: any, res) => {
   const mastery = await loadMastery(userId);
   const simStats = await prisma.simulationAttempt.aggregate({ where: { userId }, _avg: { score: true }, _count: true });
   const successCount = await prisma.simulationAttempt.count({ where: { userId, success: true } });
+  const repairStats = await prisma.repairAttempt.aggregate({
+    where: { userId, status: "COMPLETED" },
+    _avg: { score: true },
+    _max: { score: true },
+    _count: true,
+  });
+  const repairSuccess = await prisma.repairAttempt.count({ where: { userId, status: "COMPLETED", success: true } });
   const quizSessions = await prisma.quizSession.findMany({ where: { userId }, orderBy: { startedAt: "desc" }, take: 5 });
   const materialReads = await prisma.materialRead.count({ where: { userId } });
   const achievementCount = await prisma.userAchievement.count({ where: { userId } });
@@ -57,6 +64,10 @@ router.get("/summary", async (req: any, res) => {
     materialReads,
     achievementCount,
     avgMastery: Math.round(avgMastery * 1000) / 1000,
+    repairAttempts: repairStats._count,
+    repairSuccess,
+    repairAvgScore: Math.round(repairStats._avg.score ?? 0),
+    repairBestScore: repairStats._max.score ?? 0,
     recentQuizzes: quizSessions,
     masteryBySkill: masteryRows.map((r) => ({ code: r.code, name: r.name, mastery: r.mastery, tier: tierOf(r.mastery) })),
   });

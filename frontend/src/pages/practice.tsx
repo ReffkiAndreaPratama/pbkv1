@@ -136,7 +136,7 @@ export function PracticePage() {
             <span className="practice-category-icon">
               <Wrench size={21} />
             </span>
-            <span className="status status-developing">Praktik</span>
+            <span className="status status-mastered">Tersedia</span>
           </div>
           <h3>Bengkel PC</h3>
           <p>Simulasi perbaikan langsung: inspeksi komponen, pakai alat ukur, ganti bagian rusak, lalu tes nyala.</p>
@@ -145,7 +145,7 @@ export function PracticePage() {
               <div className="progress-track">
                 <span style={{ width: "100%" }} />
               </div>
-              <strong>6 misi</strong>
+              <strong>12 misi</strong>
             </div>
           </div>
           <Link className="btn btn-primary full-button" to="/repair">

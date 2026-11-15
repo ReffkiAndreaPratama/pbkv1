@@ -2,7 +2,7 @@ import { Router } from "express";
 import prisma from "../db";
 import { requireAuth } from "../middleware/auth";
 import { updateMasteryFromSimulation } from "../lib/adaptive";
-import { scoreRepair } from "../lib/repair-scoring";
+import { scoreRepair, repairGradeOf, repairStarsOf } from "../lib/repair-scoring";
 import { addXp, checkAchievements, touchStreak } from "../lib/gamification";
 
 const router = Router();
@@ -477,6 +477,37 @@ router.post("/attempts/:id/action", async (req: any, res) => {
   }
 
   res.json({ event, state: attemptState(updated) });
+});
+
+router.get("/history", async (req: any, res) => {
+  const userId = req.user!.id;
+  const attempts = await prisma.repairAttempt.findMany({
+    where: { userId, status: "COMPLETED" },
+    orderBy: { completedAt: "desc" },
+    take: 12,
+    include: { job: { include: { skill: true } } },
+  });
+  res.json(
+    attempts.map((a) => {
+      const score = a.score ?? 0;
+      return {
+        id: a.id,
+        jobId: a.jobId,
+        jobTitle: a.job.title,
+        skill: { code: a.job.skill.code, name: a.job.skill.name },
+        difficulty: a.job.difficulty,
+        score,
+        success: !!a.success,
+        grade: repairGradeOf(score),
+        stars: repairStarsOf(score, !!a.success),
+        hearts: a.hearts,
+        maxHearts: a.job.maxHearts,
+        wrongActions: a.wrongActions,
+        timeSec: a.timeSec,
+        completedAt: a.completedAt,
+      };
+    })
+  );
 });
 
 router.post("/attempts/:id/abandon", async (req: any, res) => {

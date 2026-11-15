@@ -10,7 +10,7 @@ Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Ko
 | Siswa | `demo1@techtutor.app`    | `demo1234` |
 | Siswa | `demo2@techtutor.app`    | `demo1234` |
 
-Database telah di-seed dengan **6 skill, 32 kasus simulasi (350 node), 54 soal kuis, 24 materi, 15 achievement, 6 misi Bengkel PC (38 komponen), dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
+Database telah di-seed dengan **6 skill, 32 kasus simulasi (350 node), 54 soal kuis, 24 materi, 15 achievement, 12 misi Bengkel PC (74 komponen), dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
 
 ## Stack
 
@@ -87,7 +87,7 @@ npm run test
 | Quiz | `GET/POST /api/quiz/{pretest,posttest,adaptive}` · `/start` · `/submit` | Mastery diinisialisasi/diperbarui per jawaban |
 | Cases | `GET /api/cases` · `/path` · `/history` · `/:id` · `/:id/start` | Rekomendasi adaptif per skill |
 | Simulation | `GET /api/simulation/:attemptId` · `submit` · `hint` · `abandon` | Decision tree: condition/effect, SOL/FAIL, skor metrik |
-| Bengkel PC | `GET /api/repair/jobs` · `/jobs/:id` · `POST /jobs/:id/start` · `GET /attempts/:id` · `POST /attempts/:id/action` · `abandon` | Simulasi perbaikan: INSPECT, TEST (VISUAL/MULTIMETER/POST_CARD/SOFTWARE), FIX (REPLACE/RESEAT/CLEAN/RECONNECT), POWER_TEST; nyawa, combo, timer, skor/grade/bintang |
+| Bengkel PC | `GET /api/repair/jobs` · `/jobs/:id` · `POST /jobs/:id/start` · `GET /attempts/:id` · `POST /attempts/:id/action` · `abandon` · `GET /history` | Simulasi perbaikan: INSPECT, TEST (VISUAL/MULTIMETER/POST_CARD/SOFTWARE), FIX (REPLACE/RESEAT/CLEAN/RECONNECT), POWER_TEST; nyawa, combo, timer, skor/grade/bintang; `/history` mengembalikan 12 sesi terakhir |
 | Materials | `GET /api/materials` · `/:id` · `POST /:id/read` | Tandai selesai +15 XP |
 | AI Tutor | `POST /api/ai/chat` | Router intent deterministik (cheat → socratic, konsep, hint, gejala); tidak pernah spoiler jawaban |
 | Progress | `GET /api/progress/{mastery,summary,activity,achievements,leaderboard}` | Satu sumber penghitung XP/level (learningProfile) |
@@ -102,7 +102,7 @@ npm run test
 ## Fitur utama
 
 - **Simulator troubleshooting** — 32 kasus realistis dengan pohon keputusan bercabang; siswa memilih langkah diagnosis/tindakan, sistem menerapkan `condition`/`effect` sinyal, hingga mencapai SOL atau FAIL; skor dihitung dari akurasi, efisiensi langkah, waktu, dan penalti hint.
-- **Bengkel PC (simulasi perbaikan)** — 6 misi praktik langsung (satu per skill) di meja kerja interaktif: pilih komponen, inspeksi visual, ukur dengan multimeter/POST card/diagnostik software, lalu lakukan tindakan perbaikan yang tepat (ganti, reseat, bersihkan, sambung ulang) dan tekan **Tes Nyala**. Gamifikasi: 3 nyawa, combo multiplier, countdown, bintang, grade S–D, XP, mastery per skill, dan 3 achievement teknisi. Data komponen rusak tidak pernah bocor ke klien sebelum didiagnosis.
+- **Bengkel PC (simulasi perbaikan)** — 12 misi praktik langsung (2 per skill) di meja kerja interaktif: pilih komponen, inspeksi visual, ukur dengan multimeter/POST card/diagnostik software, lalu lakukan tindakan perbaikan yang tepat (ganti, reseat, bersihkan, sambung ulang) dan tekan **Tes Nyala**. Gamifikasi: 3 nyawa, combo multiplier, countdown, bintang, grade S–D, XP, mastery per skill, dan 3 achievement teknisi. Riwayat 12 perbaikan terakhir tampil di papan misi dan statistik perbaikan (jumlah, sukses, rata-rata, terbaik) ikut dihitung di `/api/progress/summary` serta dashboard. Data komponen rusak tidak pernah bocor ke klien sebelum didiagnosis.
 - **Hint bertahap 4 level** — dari pemancing socratic hingga jawaban penuh ("Jawab Langsung" terekam), memengaruhi skor.
 - **Adaptive path** — rekomendasi kasus/kuis/material per skill berdasarkan mastery (deterministik untuk input sama).
 - **AI Tutor (mock)** — router intent deterministik: menolak permintaan spoiler, memberi pertanyaan pemancing/hint, tidak pernah membocorkan jawaban.

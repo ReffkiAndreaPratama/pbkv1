@@ -384,4 +384,345 @@ export const REPAIR_JOBS: SeedRepairJob[] = [
       },
     ],
   },
+
+  // ============================================================ POWER (2)
+  {
+    title: "PC Restart Sendiri Saat Beban Berat",
+    scenario:
+      "PC di ruang multimedia tiba-tiba restart sendiri setiap kali dipakai untuk rendering video. Setelah restart, PC bisa menyala lagi seperti biasa.",
+    symptom: "Restart mendadak saat beban tinggi; suhu terasa sangat panas.",
+    skill: "POWER",
+    difficulty: "MEDIUM",
+    timeLimitSec: 210,
+    maxHearts: 3,
+    components: [
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "PSU tidak mampu menahan beban — tegangan drop",
+        replacementName: "PSU 650W 80+ Bronze baru",
+        inspectClue: "Tegangan 12V turun drastis saat CPU diberi beban penuh.",
+        readings: {
+          MULTIMETER: "12V drop ke 10.8V saat load; rail 5V ikut tidak stabil.",
+          VISUAL: "Kipas PSU berputar pelan dan casing terasa panas.",
+        },
+      },
+      {
+        key: "fan", name: "Kipas CPU & Heatsink", category: "CORE", slot: "fan",
+        isFaulty: true, fixType: "CLEAN", faultLabel: "Debu menumpuk — heatsink tersumbat",
+        inspectClue: "Sirip heatsink CPU tertutup debu tebal; suhu idle sudah 78°C.",
+        readings: {
+          VISUAL: "Debu menutupi sirip heatsink dan kipas.",
+          SOFTWARE: "Suhu CPU 92°C saat beban penuh; thermal throttling terdeteksi.",
+        },
+      },
+      {
+        key: "mobo", name: "Motherboard", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal, tidak ada kapasitor menggembung.",
+        readings: { VISUAL: "Normal." },
+      },
+      {
+        key: "ram", name: "RAM", category: "CORE", slot: "ram",
+        fixType: "RESEAT",
+        inspectClue: "RAM terpasang rapat.",
+        readings: { SOFTWARE: "Memori lulus uji beban." },
+      },
+      {
+        key: "hdd", name: "Hard Disk (HDD)", category: "STORAGE", slot: "hdd",
+        fixType: "REPLACE",
+        inspectClue: "Disk sehat, suhu normal.",
+        readings: { SOFTWARE: "SMART: OK." },
+      },
+      {
+        key: "cable_power", name: "Kabel Power", category: "CABLE", slot: "cable_power",
+        fixType: "RECONNECT",
+        inspectClue: "Kabel power rapat.",
+        readings: { VISUAL: "Normal." },
+      },
+    ],
+  },
+
+  // ============================================================ BOOT (2)
+  {
+    title: "Restart Loop Setelah Upgrade RAM",
+    scenario:
+      "Setelah menambah satu modul RAM, PC terus restart sebelum sempat menampilkan logo Windows. Pengguna panik dan mencabut colokan listrik.",
+    symptom: "Restart berulang sebelum logo Windows; tidak ada bunyi beep panjang.",
+    skill: "BOOT",
+    difficulty: "MEDIUM",
+    timeLimitSec: 200,
+    maxHearts: 3,
+    components: [
+      {
+        key: "ram", name: "RAM Baru", category: "CORE", slot: "ram",
+        isFaulty: true, fixType: "RESEAT", faultLabel: "Modul RAM baru tidak terkunci sempurna",
+        inspectClue: "Klip pengunci modul RAM baru belum menutup rapat.",
+        readings: {
+          VISUAL: "Klip kanan RAM masih terbuka.",
+          POST_CARD: "POST berhenti di kode memori (kode 53).",
+        },
+      },
+      {
+        key: "cmos", name: "Baterai CMOS", category: "CORE", slot: "cmos",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Baterai CMOS lemah — setting BIOS kacau",
+        replacementName: "Baterai CR2032 baru",
+        inspectClue: "Jam BIOS kembali ke tahun 2010 setiap kali listrik dicabut.",
+        readings: {
+          MULTIMETER: "Tegangan baterai CMOS 1.1V (seharusnya ±3V).",
+          VISUAL: "Baterai CMOS terlihat kusam.",
+        },
+      },
+      {
+        key: "mobo", name: "Motherboard", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Normal." },
+      },
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        fixType: "REPLACE",
+        inspectClue: "PSU normal.",
+        readings: { MULTIMETER: "Tegangan 12V dan 5V normal." },
+      },
+      {
+        key: "cpu", name: "Processor (CPU)", category: "CORE", slot: "cpu",
+        fixType: "RESEAT",
+        inspectClue: "CPU terpasang benar.",
+        readings: { VISUAL: "Tidak ada pin bengkok." },
+      },
+      {
+        key: "cable_display", name: "Kabel Display", category: "CABLE", slot: "cable_display",
+        fixType: "RECONNECT",
+        inspectClue: "Kabel display rapat.",
+        readings: { VISUAL: "Normal." },
+      },
+    ],
+  },
+
+  // ============================================================ NETWORK (2)
+  {
+    title: "Internet Putus, IP Bentrok",
+    scenario:
+      "Dua komputer di ruang lab memakai alamat IP yang sama. Koneksi internet keduanya putus-nyambung dan muncul notifikasi IP conflict.",
+    symptom: "Internet putus-nyambung; notifikasi IP address conflict.",
+    skill: "NETWORK",
+    difficulty: "MEDIUM",
+    timeLimitSec: 200,
+    maxHearts: 3,
+    components: [
+      {
+        key: "router", name: "Router / Switch", category: "CORE", slot: "router",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "DHCP router bermasalah — IP ganda",
+        inspectClue: "Lampu indikator router berkedip tidak beraturan dan DHCP gagal membagi IP.",
+        readings: {
+          VISUAL: "Indikator router berkedip kacau.",
+          SOFTWARE: "IP conflict terdeteksi: dua host memakai alamat yang sama.",
+        },
+      },
+      {
+        key: "cable_lan", name: "Kabel LAN", category: "CABLE", slot: "cable_lan",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Konektor LAN longgar",
+        inspectClue: "Konektor RJ45 pada switch tidak terkunci penuh.",
+        readings: {
+          VISUAL: "Klip RJ45 longgar.",
+          MULTIMETER: "Kontinuitas pin data terputus-putus saat kabel digerakkan.",
+        },
+      },
+      {
+        key: "nic", name: "Kartu Jaringan (NIC)", category: "NETWORK", slot: "nic",
+        fixType: "REPLACE",
+        inspectClue: "NIC terdeteksi dan lampu port menyala.",
+        readings: { SOFTWARE: "Adapter Ethernet aktif." },
+      },
+      {
+        key: "mobo", name: "Motherboard", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Normal." },
+      },
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        fixType: "REPLACE",
+        inspectClue: "PSU normal.",
+        readings: { MULTIMETER: "Tegangan normal." },
+      },
+      {
+        key: "cable_power", name: "Kabel Power", category: "CABLE", slot: "cable_power",
+        fixType: "RECONNECT",
+        inspectClue: "Kabel power rapat.",
+        readings: { VISUAL: "Normal." },
+      },
+    ],
+  },
+
+  // ============================================================ STORAGE (2)
+  {
+    title: "Drive D Hilang Setelah Casing Dibersihkan",
+    scenario:
+      "Setelah casing dibersihkan, drive D berisi data tugas tidak muncul lagi di Windows. Drive C tetap normal dan Windows bisa boot.",
+    symptom: "Drive D tidak terdeteksi di File Explorer.",
+    skill: "STORAGE",
+    difficulty: "MEDIUM",
+    timeLimitSec: 200,
+    maxHearts: 3,
+    components: [
+      {
+        key: "cable_data", name: "Kabel SATA Data", category: "CABLE", slot: "cable_data",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel SATA data terlepas",
+        inspectClue: "Konektor SATA data pada drive D terlihat miring dan tidak terkunci.",
+        readings: {
+          VISUAL: "Konektor SATA data keluar sebagian dari drive.",
+          MULTIMETER: "Kontinuitas kabel data terputus.",
+        },
+      },
+      {
+        key: "cable_sata_power", name: "Kabel Power SATA", category: "CABLE", slot: "cable_sata_power",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel power SATA tidak terpasang",
+        inspectClue: "Drive D tidak mendapat suplai daya; konektor power SATA menggantung.",
+        readings: {
+          VISUAL: "Konektor power SATA lepas dari drive.",
+          MULTIMETER: "Tidak ada tegangan 5V pada konektor power drive D.",
+        },
+      },
+      {
+        key: "hdd", name: "Drive D (HDD)", category: "STORAGE", slot: "hdd",
+        fixType: "REPLACE",
+        inspectClue: "Drive berputar normal saat diberi daya.",
+        readings: { SOFTWARE: "SMART: OK; drive sehat." },
+      },
+      {
+        key: "mobo", name: "Motherboard", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Normal." },
+      },
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        fixType: "REPLACE",
+        inspectClue: "PSU normal.",
+        readings: { MULTIMETER: "Tegangan normal." },
+      },
+      {
+        key: "ram", name: "RAM", category: "CORE", slot: "ram",
+        fixType: "RESEAT",
+        inspectClue: "RAM normal.",
+        readings: { SOFTWARE: "Memori lulus uji." },
+      },
+    ],
+  },
+
+  // ============================================================ DISPLAY (2)
+  {
+    title: "Layar Bergaris & Artefak",
+    scenario:
+      "Monitor menampilkan garis-garis warna dan artefak kotak-kotak, terutama saat membuka aplikasi grafis. PC sendiri tetap menyala dan tidak restart.",
+    symptom: "Garis dan artefak di layar saat aplikasi grafis dibuka.",
+    skill: "DISPLAY",
+    difficulty: "HARD",
+    timeLimitSec: 230,
+    maxHearts: 3,
+    components: [
+      {
+        key: "gpu", name: "Kartu VGA", category: "DISPLAY", slot: "gpu",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "GPU rusak — artefak & VRAM error",
+        replacementName: "VGA GT 1030 baru",
+        inspectClue: "Artefak muncul bahkan di BIOS; suhu GPU melonjak saat beban.",
+        readings: {
+          VISUAL: "Garis warna dan artefak di layar.",
+          SOFTWARE: "GPU artifact test gagal; suhu GPU 95°C.",
+          POST_CARD: "POST card menampilkan kode VGA (kode 62).",
+        },
+      },
+      {
+        key: "fan", name: "Kipas Casing", category: "CORE", slot: "fan",
+        isFaulty: true, fixType: "CLEAN", faultLabel: "Aliran udara tersumbat debu",
+        inspectClue: "Kipas casing dan filter depan tertutup debu tebal.",
+        readings: {
+          VISUAL: "Debu menutupi filter dan kipas casing.",
+          SOFTWARE: "Suhu internal casing 48°C; aliran udara buruk.",
+        },
+      },
+      {
+        key: "monitor", name: "Monitor", category: "DISPLAY", slot: "monitor",
+        fixType: "RECONNECT",
+        inspectClue: "Monitor normal saat dites dengan laptop lain.",
+        readings: { VISUAL: "Tidak ada garis saat memakai sumber lain." },
+      },
+      {
+        key: "cable_display", name: "Kabel Display", category: "CABLE", slot: "cable_display",
+        fixType: "RECONNECT",
+        inspectClue: "Kabel HDMI terpasang rapat.",
+        readings: { MULTIMETER: "Kontinuitas kabel display baik." },
+      },
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        fixType: "REPLACE",
+        inspectClue: "PSU normal.",
+        readings: { MULTIMETER: "Tegangan normal." },
+      },
+      {
+        key: "ram", name: "RAM", category: "CORE", slot: "ram",
+        fixType: "RESEAT",
+        inspectClue: "RAM normal.",
+        readings: { POST_CARD: "Memori lolos POST." },
+      },
+    ],
+  },
+
+  // ============================================================ PERIPHERAL (2)
+  {
+    title: "Keyboard & Mouse Tidak Merespons",
+    scenario:
+      "Setelah kabel USB dipindah ke port depan, keyboard dan mouse berhenti merespons. Lampu Num Lock mati dan kursor tidak bergerak.",
+    symptom: "Keyboard dan mouse mati; tidak ada input sama sekali.",
+    skill: "PERIPHERAL",
+    difficulty: "EASY",
+    timeLimitSec: 180,
+    maxHearts: 3,
+    components: [
+      {
+        key: "cable_usb", name: "Kabel USB Hub", category: "CABLE", slot: "cable_usb",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel USB hub longgar",
+        inspectClue: "Konektor USB hub tidak masuk penuh ke port depan.",
+        readings: {
+          VISUAL: "Konektor USB hub miring dan longgar.",
+          MULTIMETER: "Kontinuitas kabel USB terputus saat digerakkan.",
+        },
+      },
+      {
+        key: "keyboard", name: "Keyboard", category: "PERIPHERAL", slot: "keyboard",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Keyboard rusak — tidak mengirim input",
+        replacementName: "Keyboard USB baru",
+        inspectClue: "Lampu Num Lock keyboard tidak menyala meski dites di port lain.",
+        readings: {
+          VISUAL: "Tidak ada lampu indikator keyboard.",
+          SOFTWARE: "Perangkat USB tidak dikenali (unknown device).",
+        },
+      },
+      {
+        key: "mouse", name: "Mouse", category: "PERIPHERAL", slot: "mouse",
+        fixType: "RECONNECT",
+        inspectClue: "Mouse menyala dan sensor bekerja.",
+        readings: { SOFTWARE: "Mouse terdeteksi normal." },
+      },
+      {
+        key: "mobo", name: "Motherboard", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Normal." },
+      },
+      {
+        key: "psu", name: "Power Supply (PSU)", category: "POWER", slot: "psu",
+        fixType: "REPLACE",
+        inspectClue: "PSU normal.",
+        readings: { MULTIMETER: "Tegangan normal." },
+      },
+      {
+        key: "monitor", name: "Monitor", category: "DISPLAY", slot: "monitor",
+        fixType: "RECONNECT",
+        inspectClue: "Monitor menampilkan desktop normal.",
+        readings: { VISUAL: "Tampilan normal." },
+      },
+    ],
+  },
 ];

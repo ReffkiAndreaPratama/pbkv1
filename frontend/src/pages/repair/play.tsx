@@ -18,6 +18,7 @@ import {
   Lightbulb,
   MemoryStick,
   Monitor,
+  Mouse,
   Network,
   Play,
   Power,
@@ -84,6 +85,8 @@ const COMPONENT_ICON: Record<string, LucideIcon> = {
   cable_lan: Cable,
   cable_display: Cable,
   cable_usb: Cable,
+  cable_sata_power: Cable,
+  mouse: Mouse,
 };
 
 function iconFor(c: RepairComponentState): LucideIcon {

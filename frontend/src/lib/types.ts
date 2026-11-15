@@ -306,6 +306,23 @@ export interface RepairResult {
   timeSec: number;
 }
 
+export interface RepairHistoryItem {
+  id: string;
+  jobId: string;
+  jobTitle: string;
+  skill: { code: string; name: string };
+  difficulty: Difficulty;
+  score: number;
+  success: boolean;
+  grade: string;
+  stars: number;
+  hearts: number;
+  maxHearts: number;
+  wrongActions: number;
+  timeSec: number;
+  completedAt: string | null;
+}
+
 export interface RepairActionResponse {
   event: RepairEvent;
   state: RepairAttemptState;
@@ -320,6 +337,10 @@ export interface SummaryData {
   materialReads: number;
   achievementCount: number;
   avgMastery: number;
+  repairAttempts: number;
+  repairSuccess: number;
+  repairAvgScore: number;
+  repairBestScore: number;
   recentQuizzes: QuizSessionRow[];
   masteryBySkill: { code: string; name: string; mastery: number; tier: Tier }[];
 }

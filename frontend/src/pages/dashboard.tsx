@@ -15,6 +15,7 @@ import {
   Sparkles,
   Target,
   Trophy,
+  Wrench,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { api } from "@/lib/api";
@@ -209,13 +210,13 @@ export function DashboardPage() {
         </section>
         <section className="panel action">
           <span>
-            <MonitorCog size={18} />
+            <Wrench size={18} />
           </span>
           <div>
             <small>AKSES CEPAT</small>
-            <strong>Simulasi Troubleshooting</strong>
+            <strong>Bengkel PC · {summary.repairSuccess} perbaikan sukses</strong>
           </div>
-          <Link to="/cases">
+          <Link to="/repair">
             <ArrowRight size={17} />
           </Link>
         </section>
@@ -295,8 +296,8 @@ export function DashboardPage() {
             <ListChecks size={17} />
           </span>
           <div>
-            <strong>{summary.successCases}</strong>
-            <small>Kasus berhasil</small>
+            <strong>{summary.successCases + summary.repairSuccess}</strong>
+            <small>Misi berhasil</small>
           </div>
         </div>
       </div>

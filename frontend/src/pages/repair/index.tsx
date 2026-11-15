@@ -6,6 +6,7 @@ import {
   Clock,
   HardDrive,
   Heart,
+  History,
   Monitor,
   Power,
   Printer,
@@ -23,8 +24,8 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton, EmptyState } from "@/components/ui/feedback";
-import { cn, difficultyColor, difficultyLabel, formatTime } from "@/lib/utils";
-import type { Difficulty, RepairAttemptState, RepairJobListItem } from "@/lib/types";
+import { cn, difficultyColor, difficultyLabel, formatDate, formatTime } from "@/lib/utils";
+import type { Difficulty, RepairAttemptState, RepairHistoryItem, RepairJobListItem } from "@/lib/types";
 
 const SKILL_ICON: Record<string, LucideIcon> = {
   POWER: Zap,
@@ -45,12 +46,21 @@ const DIFF_FILTERS: { value: "ALL" | Difficulty; label: string }[] = [
 export function RepairIndexPage() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<RepairJobListItem[] | null>(null);
+  const [history, setHistory] = useState<RepairHistoryItem[]>([]);
   const [search, setSearch] = useState("");
   const [diff, setDiff] = useState<"ALL" | Difficulty>("ALL");
   const [starting, setStarting] = useState<string | null>(null);
 
   useEffect(() => {
-    api.get<RepairJobListItem[]>("/api/repair/jobs").then(setJobs).catch(() => setJobs([]));
+    Promise.all([
+      api.get<RepairJobListItem[]>("/api/repair/jobs"),
+      api.get<RepairHistoryItem[]>("/api/repair/history").catch(() => [] as RepairHistoryItem[]),
+    ])
+      .then(([j, h]) => {
+        setJobs(j);
+        setHistory(h);
+      })
+      .catch(() => setJobs([]));
   }, []);
 
   const start = async (jobId: string) => {
@@ -156,6 +166,56 @@ export function RepairIndexPage() {
             <JobCard key={j.id} job={j} starting={starting === j.id} onStart={() => void start(j.id)} />
           ))}
         </div>
+      )}
+
+      {history.length > 0 && (
+        <section className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <History className="h-4 w-4 text-primary" />
+              <h2 className="font-display text-sm font-bold">Riwayat Perbaikan</h2>
+            </div>
+            <span className="text-[11px] text-muted-foreground">{history.length} sesi terakhir</span>
+          </div>
+          <Card className="divide-y divide-border/60 overflow-hidden">
+            {history.map((h) => (
+              <button
+                key={h.id}
+                type="button"
+                onClick={() => navigate(`/repair/${h.id}`)}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+                title="Lihat hasil perbaikan"
+              >
+                <span
+                  className={cn(
+                    "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg font-display text-sm font-extrabold",
+                    h.success ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"
+                  )}
+                >
+                  {h.grade}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs font-bold">{h.jobTitle}</span>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+                    <span>{h.skill.code}</span>
+                    <span aria-hidden>·</span>
+                    <span>{formatDate(h.completedAt)}</span>
+                    <span aria-hidden>·</span>
+                    <span>{formatTime(h.timeSec)}</span>
+                    <span aria-hidden>·</span>
+                    <span>{h.hearts}/{h.maxHearts} nyawa</span>
+                  </span>
+                </span>
+                <span className="flex shrink-0 items-center gap-0.5">
+                  {[1, 2, 3].map((i) => (
+                    <Star key={i} className={cn("h-3 w-3", i <= h.stars ? "fill-amber-400 text-amber-400" : "text-muted")} />
+                  ))}
+                </span>
+                <span className="w-10 shrink-0 text-right font-display text-sm font-extrabold">{h.score}</span>
+              </button>
+            ))}
+          </Card>
+        </section>
       )}
     </div>
   );
