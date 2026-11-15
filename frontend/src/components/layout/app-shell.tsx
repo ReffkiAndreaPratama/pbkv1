@@ -1,8 +1,8 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ChevronRight, LayoutDashboard, LogOut, Menu, X, UserRound, Activity } from "lucide-react";
+import { ChevronRight, LayoutDashboard, LogOut, Medal, Menu, Trophy, X, UserRound, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { adminNavItems, navItems } from "./nav";
+import { adminNavItems, bottomNav, navItems } from "./nav";
 import { Logo } from "./logo";
 import { useAuth } from "@/lib/auth";
 import { useJalur, jalurLabel } from "@/lib/learning-path";
@@ -149,6 +149,12 @@ export function AppShell() {
                 <button onClick={() => { setProfileOpen(false); navigate("/progress"); }} type="button">
                   <Activity size={17} /> Progres Belajar
                 </button>
+                <button onClick={() => { setProfileOpen(false); navigate("/achievements"); }} type="button">
+                  <Trophy size={17} /> Pencapaian
+                </button>
+                <button onClick={() => { setProfileOpen(false); navigate("/leaderboard"); }} type="button">
+                  <Medal size={17} /> Papan Peringkat
+                </button>
                 {isAdmin && (
                   <button onClick={() => { setProfileOpen(false); navigate("/admin"); }} type="button">
                     <LayoutDashboard size={17} /> Panel Admin
@@ -181,7 +187,7 @@ export function AppShell() {
       </div>
 
       <nav className="mobile-bottom-nav" aria-label="Navigasi utama mobile">
-        {navItems.map((item) => (
+        {bottomNav.map((item) => (
           <NavLink
             className={({ isActive }) => (isActive ? "active" : "")}
             end={item.end}

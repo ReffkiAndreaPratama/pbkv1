@@ -1,5 +1,21 @@
 import { useEffect, useState } from "react";
-import { Trophy, Lock } from "lucide-react";
+import {
+  Award,
+  BookOpen,
+  Brain,
+  Flame,
+  Footprints,
+  Hand,
+  Lock,
+  Medal,
+  Rocket,
+  Sparkles,
+  Target,
+  Timer,
+  Trophy,
+  Wrench,
+  type LucideIcon,
+} from "lucide-react";
 import { api } from "@/lib/api";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
@@ -8,8 +24,25 @@ import { PageLoader, EmptyState } from "@/components/ui/feedback";
 import { cn, formatDate } from "@/lib/utils";
 import type { Achievement } from "@/lib/types";
 
-function EmojiIcon({ icon }: { icon: string }) {
-  return <span className="text-3xl">{icon}</span>;
+const ACHIEVEMENT_ICONS: Record<string, LucideIcon> = {
+  footprints: Footprints,
+  wrench: Wrench,
+  target: Target,
+  brain: Brain,
+  flame: Flame,
+  fire: Flame,
+  "book-open": BookOpen,
+  sparkles: Sparkles,
+  medal: Medal,
+  rocket: Rocket,
+  timer: Timer,
+  award: Award,
+  hand: Hand,
+};
+
+function AchievementIcon({ icon }: { icon: string }) {
+  const Icon = ACHIEVEMENT_ICONS[icon] ?? Trophy;
+  return <Icon className="h-6 w-6 text-amber-600" />;
 }
 
 export function AchievementsPage() {
@@ -44,7 +77,7 @@ export function AchievementsPage() {
             >
               <div className="mb-3 flex items-start justify-between">
                 <div className={cn("flex h-12 w-12 items-center justify-center rounded-2xl", a.unlocked ? "bg-amber-100" : "bg-muted")}>
-                  {a.unlocked ? <EmojiIcon icon={a.icon} /> : <Lock className="h-5 w-5 text-muted-foreground" />}
+                  {a.unlocked ? <AchievementIcon icon={a.icon} /> : <Lock className="h-5 w-5 text-muted-foreground" />}
                 </div>
                 {a.unlocked ? (
                   <Badge variant="success" className="gap-1">Terbuka</Badge>

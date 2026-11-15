@@ -7,13 +7,17 @@ import { requireAuth, signToken } from "../middleware/auth";
 const router = Router();
 
 const registerSchema = z.object({
-  name: z.string().min(3).max(50),
-  email: z.string().email().transform((e) => e.toLowerCase().trim()),
-  password: z.string().min(8).regex(/[A-Za-z]/).regex(/[0-9]/, "Password must contain at least one number"),
+  name: z.string().min(3, "Nama minimal 3 karakter.").max(50, "Nama maksimal 50 karakter."),
+  email: z.string().email("Format email tidak valid.").transform((e) => e.toLowerCase().trim()),
+  password: z
+    .string()
+    .min(8, "Password minimal 8 karakter.")
+    .regex(/[A-Za-z]/, "Password harus mengandung huruf.")
+    .regex(/[0-9]/, "Password harus mengandung angka."),
 });
 
 const loginSchema = z.object({
-  email: z.string().email().transform((e) => e.toLowerCase().trim()),
+  email: z.string().email("Format email tidak valid.").transform((e) => e.toLowerCase().trim()),
   password: z.string(),
 });
 
@@ -21,7 +25,7 @@ router.post("/register", async (req, res) => {
   const { name, email, password } = registerSchema.parse(req.body);
   const exists = await prisma.user.findUnique({ where: { email } });
   if (exists) {
-    res.status(409).json({ error: "Email already registered." });
+    res.status(409).json({ error: "Email sudah terdaftar." });
     return;
   }
   const passwordHash = await bcrypt.hash(password, 10);
@@ -43,7 +47,7 @@ router.post("/login", async (req, res) => {
     include: { profile: { select: { pretestDone: true, posttestDone: true, posttestScore: true, level: true, totalXp: true, streakDays: true, learningStyle: true, targetLevel: true } } },
   });
   if (!user || !(await bcrypt.compare(password, user.password))) {
-    res.status(401).json({ error: "Invalid email or password." });
+    res.status(401).json({ error: "Email atau password salah." });
     return;
   }
   const token = signToken(user);

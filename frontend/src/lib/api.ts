@@ -74,7 +74,8 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   try {
     const res = await fetch(apiUrl(path), { ...options, headers });
-    if (res.status === 401) {
+    const isAuthAttempt = path === "/api/auth/login" || path === "/api/auth/register";
+    if (res.status === 401 && !isAuthAttempt) {
       clearToken();
       window.dispatchEvent(new Event("techtutor:unauthorized"));
       throw new ApiError(401, "Sesi berakhir. Silakan masuk kembali.");

@@ -12,6 +12,8 @@ import {
   Database,
   Layers,
   Activity,
+  Trophy,
+  Medal,
   type LucideIcon,
 } from "lucide-react";
 
@@ -29,10 +31,18 @@ export const navItems: NavItem[] = [
   { title: "Simulasi", path: "/cases", icon: MonitorCog },
   { title: "Bengkel", path: "/repair", icon: Wrench },
   { title: "Evaluasi", path: "/evaluation", icon: Target },
+  { title: "Pencapaian", path: "/achievements", icon: Trophy },
+  { title: "Peringkat", path: "/leaderboard", icon: Medal },
   { title: "Profil", path: "/profile", icon: UserRound },
 ];
 
-export const bottomNav: NavItem[] = navItems;
+export const bottomNav: NavItem[] = [
+  { title: "Dashboard", path: "/dashboard", icon: LayoutDashboard, end: true },
+  { title: "Materi", path: "/materials", icon: BookOpenText },
+  { title: "Latihan", path: "/practice", icon: ListChecks },
+  { title: "Bengkel", path: "/repair", icon: Wrench },
+  { title: "Profil", path: "/profile", icon: UserRound },
+];
 
 export const adminNavItems: NavItem[] = [
   { title: "Ringkasan", path: "/admin", icon: LayoutDashboard, end: true },
