@@ -11,6 +11,7 @@ import {
   Flame,
   Gauge,
   Heart,
+  HelpCircle,
   Lightbulb,
   Play,
   Power,
@@ -19,17 +20,21 @@ import {
   Star,
   Terminal,
   Trophy,
+  Volume2,
+  VolumeX,
   Wrench,
   XCircle,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { playSound, isSoundMuted, toggleSoundMuted } from "@/lib/sound";
 import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeviceChassis } from "@/components/repair/device-chassis";
+import { RepairTutorial, markRepairTutorialSeen } from "@/components/repair/repair-tutorial";
 import { componentIcon } from "@/components/repair/component-icons";
 import { cn, difficultyColor, difficultyLabel } from "@/lib/utils";
 import type {
@@ -76,10 +81,28 @@ export function RepairPlayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
+  const [muted, setMuted] = useState(() => isSoundMuted());
+  const [tutorialOpen, setTutorialOpen] = useState(false);
   const timeoutRef = useRef(false);
   const eventId = useRef(0);
 
   useLeaveGuard(!loading && !result && state?.status === "IN_PROGRESS");
+
+  const handleSelect = useCallback((key: string) => {
+    setSelectedKey(key);
+    playSound("select");
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+      window.setTimeout(() => {
+        document.getElementById("diagnosis-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 80);
+    }
+  }, []);
+
+  const toggleMute = () => {
+    const next = toggleSoundMuted();
+    setMuted(next);
+    if (!next) playSound("select");
+  };
 
   // load attempt
   useEffect(() => {
@@ -139,13 +162,20 @@ export function RepairPlayPage() {
         setEvents((prev) => [{ id: eventId.current, event: res.event }, ...prev].slice(0, 24));
         if (res.result) {
           setResult(res.result);
+          playSound(res.result.success ? "win" : "lose");
           const device = res.state.job.deviceType === "LAPTOP" ? "Laptop" : "PC";
           if (res.result.success) toast.success(`${device} berhasil diperbaiki! 🎉`);
           else toast.error("Misi perbaikan gagal.");
         } else if (res.event.kind === "HEART_LOST") {
-          toast.error(res.event.title);
+          playSound("wrong");
+          toast.error(res.event.title, { description: res.event.message, duration: 6000 });
         } else if (res.event.kind === "FIX") {
-          toast.success(res.event.title);
+          playSound("fix");
+          toast.success(res.event.title, { description: res.event.message });
+        } else if (res.event.kind === "INSPECT" || res.event.kind === "TEST") {
+          playSound("inspect");
+        } else if (res.event.kind === "INFO") {
+          toast.info(res.event.title, { description: res.event.message });
         }
       } catch (e: any) {
         toast.error(e.message || "Aksi gagal diproses.");
@@ -234,7 +264,27 @@ export function RepairPlayPage() {
             <span className="font-mono-tech text-[10px] font-bold tracking-[0.2em] text-emerald-300">TIKET PERBAIKAN</span>
           </div>
           <span className="min-w-0 truncate font-display text-sm font-bold">{state.job.title}</span>
-          <Badge className={cn(difficultyColor(state.job.difficulty), "shrink-0")}>{difficultyLabel(state.job.difficulty)}</Badge>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Badge className={cn(difficultyColor(state.job.difficulty), "shrink-0")}>{difficultyLabel(state.job.difficulty)}</Badge>
+            <button
+              type="button"
+              onClick={toggleMute}
+              aria-label={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
+              title={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
+              className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setTutorialOpen(true)}
+              aria-label="Buka cara main"
+              title="Cara main"
+              className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+            >
+              <HelpCircle className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-4">
@@ -305,7 +355,7 @@ export function RepairPlayPage() {
                 components={state.components}
                 selectedKey={selectedKey}
                 disabled={done}
-                onSelect={setSelectedKey}
+                onSelect={handleSelect}
               />
 
               <div className="mt-4 rounded-xl border border-dashed border-border/70 bg-muted/30 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
@@ -356,7 +406,7 @@ export function RepairPlayPage() {
 
         {/* action panel */}
         <div className="space-y-4">
-          <div className="lg:sticky lg:top-4">
+          <div id="diagnosis-panel" className="scroll-mt-4 lg:sticky lg:top-4">
             <Card className="overflow-hidden">
               <div className="border-b border-border/60 px-4 py-3">
                 <span className="font-mono-tech text-xs font-bold uppercase tracking-widest text-muted-foreground">Panel Diagnosis</span>
@@ -475,6 +525,14 @@ export function RepairPlayPage() {
           </div>
         </div>
       </div>
+
+      <RepairTutorial
+        open={tutorialOpen}
+        onClose={() => {
+          markRepairTutorialSeen();
+          setTutorialOpen(false);
+        }}
+      />
 
       {result && (
         <ResultOverlay

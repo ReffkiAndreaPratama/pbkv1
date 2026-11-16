@@ -6,6 +6,7 @@ import {
   Clock,
   HardDrive,
   Heart,
+  HelpCircle,
   History,
   Laptop,
   Monitor,
@@ -26,6 +27,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton, EmptyState } from "@/components/ui/feedback";
+import { RepairTutorial, hasSeenRepairTutorial, markRepairTutorialSeen } from "@/components/repair/repair-tutorial";
 import { cn, difficultyColor, difficultyLabel, formatDate, formatTime } from "@/lib/utils";
 import type { Difficulty, RepairAttemptState, RepairDeviceType, RepairHistoryItem, RepairJobListItem } from "@/lib/types";
 
@@ -63,6 +65,7 @@ export function RepairIndexPage() {
   const [diff, setDiff] = useState<"ALL" | Difficulty>("ALL");
   const [device, setDevice] = useState<"ALL" | RepairDeviceType>("ALL");
   const [starting, setStarting] = useState<string | null>(null);
+  const [tutorialOpen, setTutorialOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -75,6 +78,16 @@ export function RepairIndexPage() {
       })
       .catch(() => setJobs([]));
   }, []);
+
+  // Tutorial pertama kali: buka setelah papan misi siap, jangan di tengah attempt.
+  useEffect(() => {
+    if (jobs && jobs.length > 0 && !hasSeenRepairTutorial()) setTutorialOpen(true);
+  }, [jobs]);
+
+  const closeTutorial = () => {
+    markRepairTutorialSeen();
+    setTutorialOpen(false);
+  };
 
   const start = async (jobId: string) => {
     if (starting) return;
@@ -126,6 +139,13 @@ export function RepairIndexPage() {
                 Mode Praktik Langsung
               </div>
               <h2 className="font-display text-lg font-extrabold">Meja kerja teknisi menantimu</h2>
+              <button
+                type="button"
+                onClick={() => setTutorialOpen(true)}
+                className="mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/5 px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-200 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <HelpCircle className="h-3 w-3" aria-hidden /> Cara main
+              </button>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-[11px] text-slate-300 sm:grid-cols-4">
@@ -258,6 +278,8 @@ export function RepairIndexPage() {
           </Card>
         </section>
       )}
+
+      <RepairTutorial open={tutorialOpen} onClose={closeTutorial} />
     </div>
   );
 }

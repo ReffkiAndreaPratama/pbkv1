@@ -13,6 +13,37 @@ const FIX_TYPES = ["REPLACE", "RESEAT", "CLEAN", "RECONNECT"] as const;
 type Tool = (typeof TOOLS)[number];
 type FixType = (typeof FIX_TYPES)[number];
 
+const FIX_LABELS: Record<FixType, string> = {
+  REPLACE: "ganti komponen",
+  RESEAT: "reseat",
+  CLEAN: "bersihkan",
+  RECONNECT: "sambung ulang",
+};
+
+// Umpan balik salah tindakan: jelaskan kenapa tindakan itu belum menyentuh akar
+// masalah, tanpa membocorkan tindakan yang benar.
+const FIX_RULE_OUT: Record<FixType, string> = {
+  REPLACE:
+    "Mengganti komponen belum tentu perlu — periksa dulu apakah masalahnya hanya pada kontak, kotoran, atau sambungan.",
+  RESEAT:
+    "Memasang ulang posisi komponen belum menyelesaikan masalah — periksa kondisi kotoran atau kerusakan pada komponen.",
+  CLEAN:
+    "Membersihkan permukaan saja belum cukup — periksa apakah ada bagian yang longgar, rusak, atau salah sambung.",
+  RECONNECT:
+    "Menyambung ulang kabel belum memperbaiki masalah — periksa apakah komponennya perlu diganti, dibersihkan, atau dipasang ulang.",
+};
+
+function wrongFixReason(
+  component: { name: string; isFaulty: boolean; faultLabel: string | null },
+  chosen: FixType
+): string {
+  if (!component.isFaulty) {
+    return `${component.name} tidak menunjukkan tanda kerusakan. Tindakan "${FIX_LABELS[chosen]}" hanya membuang waktu — pilih komponen yang benar-benar bermasalah.`;
+  }
+  const fault = component.faultLabel ? ` (${component.faultLabel.toLowerCase()})` : "";
+  return `${component.name} memang bermasalah${fault}. ${FIX_RULE_OUT[chosen]} Baca lagi hasil inspeksi dan pengukuran untuk menentukan tindakan yang tepat.`;
+}
+
 function asStringArray(v: unknown): string[] {
   return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
 }
@@ -405,9 +436,7 @@ router.post("/attempts/:id/action", async (req: any, res) => {
         wrongActions += 1;
         combo = 0;
         hearts = Math.max(0, hearts - 1);
-        const reason = !component.isFaulty
-          ? `${component.name} tidak menunjukkan masalah. Tindakan ini justru membuang waktu.`
-          : `Tindakan belum tepat untuk ${component.name}. Coba diagnosis lebih teliti.`;
+        const reason = wrongFixReason(component, fixType);
         event = {
           kind: "HEART_LOST",
           ok: false,
