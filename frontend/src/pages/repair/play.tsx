@@ -2,36 +2,25 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Battery,
   Cable,
   CheckCircle2,
   CircuitBoard,
   Clock,
   Cpu,
   Eye,
-  Fan,
   Flame,
   Gauge,
-  HardDrive,
   Heart,
-  Keyboard,
   Lightbulb,
-  MemoryStick,
-  Monitor,
-  Mouse,
-  Network,
   Play,
   Power,
-  Printer,
   RefreshCw,
-  Router,
   Sparkles,
   Star,
   Terminal,
   Trophy,
   Wrench,
   XCircle,
-  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -40,11 +29,13 @@ import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { DeviceChassis } from "@/components/repair/device-chassis";
+import { componentIcon } from "@/components/repair/component-icons";
 import { cn, difficultyColor, difficultyLabel } from "@/lib/utils";
 import type {
   RepairActionResponse,
   RepairAttemptState,
-  RepairComponentState,
+  RepairDeviceType,
   RepairEvent,
   RepairFixType,
   RepairResult,
@@ -65,33 +56,6 @@ const FIXES: { key: RepairFixType; label: string; desc: string; icon: LucideIcon
   { key: "CLEAN", label: "Bersihkan", desc: "Bersihkan debu / korosi", icon: Sparkles },
   { key: "RECONNECT", label: "Sambung Ulang", desc: "Cabut & colok kabel", icon: Cable },
 ];
-
-const COMPONENT_ICON: Record<string, LucideIcon> = {
-  psu: Zap,
-  mobo: CircuitBoard,
-  cpu: Cpu,
-  ram: MemoryStick,
-  gpu: Monitor,
-  hdd: HardDrive,
-  fan: Fan,
-  cmos: Battery,
-  monitor: Monitor,
-  keyboard: Keyboard,
-  printer: Printer,
-  nic: Network,
-  router: Router,
-  cable_power: Cable,
-  cable_data: Cable,
-  cable_lan: Cable,
-  cable_display: Cable,
-  cable_usb: Cable,
-  cable_sata_power: Cable,
-  mouse: Mouse,
-};
-
-function iconFor(c: RepairComponentState): LucideIcon {
-  return COMPONENT_ICON[c.key] ?? (c.category === "CABLE" ? Cable : c.category === "PERIPHERAL" ? Printer : Wrench);
-}
 
 function formatClock(sec: number): string {
   const s = Math.max(0, sec);
@@ -175,7 +139,8 @@ export function RepairPlayPage() {
         setEvents((prev) => [{ id: eventId.current, event: res.event }, ...prev].slice(0, 24));
         if (res.result) {
           setResult(res.result);
-          if (res.result.success) toast.success("PC berhasil diperbaiki! 🎉");
+          const device = res.state.job.deviceType === "LAPTOP" ? "Laptop" : "PC";
+          if (res.result.success) toast.success(`${device} berhasil diperbaiki! 🎉`);
           else toast.error("Misi perbaikan gagal.");
         } else if (res.event.kind === "HEART_LOST") {
           toast.error(res.event.title);
@@ -330,24 +295,23 @@ export function RepairPlayPage() {
                 <CircuitBoard className="h-4 w-4 text-primary" />
                 <span className="font-mono-tech text-xs font-bold uppercase tracking-widest text-primary">Meja Kerja</span>
               </div>
-              <span className="text-[11px] text-muted-foreground">{state.components.length} komponen · klik untuk memeriksa</span>
+              <span className="text-[11px] text-muted-foreground">
+                {state.job.deviceType === "LAPTOP" ? "Laptop" : "PC"} · {state.components.length} komponen · klik bagian untuk memeriksa
+              </span>
             </div>
             <CardContent className="p-4 sm:p-5">
-              <div className="grid gap-3 sm:grid-cols-2">
-                {state.components.map((c) => (
-                  <ComponentCard
-                    key={c.key}
-                    component={c}
-                    selected={c.key === selectedKey}
-                    disabled={done}
-                    onSelect={() => setSelectedKey(c.key)}
-                  />
-                ))}
-              </div>
+              <DeviceChassis
+                deviceType={state.job.deviceType}
+                components={state.components}
+                selectedKey={selectedKey}
+                disabled={done}
+                onSelect={setSelectedKey}
+              />
 
               <div className="mt-4 rounded-xl border border-dashed border-border/70 bg-muted/30 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Tips:</strong> inspeksi dulu, lalu gunakan alat yang relevan. Tindakan perbaikan yang salah
-                akan mengurangi 1 nyawa. Tekan <strong>Tes Nyala</strong> setelah semua masalah diperbaiki.
+                <strong className="text-foreground">Tips:</strong> klik komponen pada gambar untuk memeriksanya. Inspeksi dulu, lalu
+                gunakan alat yang relevan. Tindakan perbaikan yang salah akan mengurangi 1 nyawa. Tekan{" "}
+                <strong>Tes Nyala</strong> setelah semua masalah diperbaiki.
               </div>
             </CardContent>
           </Card>
@@ -357,7 +321,9 @@ export function RepairPlayPage() {
             <CardContent className="flex flex-col items-center gap-3 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
               <div>
                 <div className="font-display text-sm font-bold text-emerald-900">Sudah yakin semua beres?</div>
-                <p className="mt-0.5 text-xs text-emerald-800/80">Tekan tombol untuk menyalakan PC. Kalau masih ada kerusakan, nyawa berkurang.</p>
+                <p className="mt-0.5 text-xs text-emerald-800/80">
+                  Tekan tombol untuk menyalakan {state.job.deviceType === "LAPTOP" ? "laptop" : "PC"}. Kalau masih ada kerusakan, nyawa berkurang.
+                </p>
               </div>
               <Button
                 className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
@@ -403,7 +369,7 @@ export function RepairPlayPage() {
                       selected.fixed ? "bg-emerald-100 text-emerald-700" : selected.inspected ? "bg-sky-100 text-sky-700" : "bg-muted text-muted-foreground"
                     )}>
                       {(() => {
-                        const Icon = iconFor(selected);
+                        const Icon = componentIcon(selected);
                         return <Icon className="h-5 w-5" />;
                       })()}
                     </span>
@@ -511,62 +477,19 @@ export function RepairPlayPage() {
       </div>
 
       {result && (
-        <ResultOverlay result={result} jobTitle={state.job.title} onRestart={() => void restart()} onExit={() => navigate("/repair")} />
+        <ResultOverlay
+          result={result}
+          jobTitle={state.job.title}
+          deviceType={state.job.deviceType}
+          onRestart={() => void restart()}
+          onExit={() => navigate("/repair")}
+        />
       )}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- pieces
-function ComponentCard({
-  component,
-  selected,
-  disabled,
-  onSelect,
-}: {
-  component: RepairComponentState;
-  selected: boolean;
-  disabled: boolean;
-  onSelect: () => void;
-}) {
-  const Icon = iconFor(component);
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      disabled={disabled}
-      className={cn(
-        "group relative flex items-center gap-3 rounded-xl border p-3 text-left transition-all",
-        selected ? "border-primary bg-primary/5 ring-2 ring-primary/25" : "border-border/70 bg-card hover:border-primary/40 hover:shadow-soft",
-        component.fixed && "border-emerald-300/70 bg-emerald-50/60",
-        disabled && "cursor-default"
-      )}
-    >
-      <span
-        className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          component.fixed ? "bg-emerald-100 text-emerald-700" : component.inspected ? "bg-sky-100 text-sky-700" : "bg-muted text-muted-foreground"
-        )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-xs font-bold leading-snug">{component.name}</span>
-        <span className="mt-0.5 block text-[10px] text-muted-foreground">
-          {component.fixed ? "Sudah diperbaiki" : component.inspected ? "Sudah diinspeksi" : "Belum dicek"}
-        </span>
-      </span>
-      {component.fixed ? (
-        <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" />
-      ) : component.inspected ? (
-        <Eye className="h-3.5 w-3.5 shrink-0 text-sky-500" />
-      ) : (
-        <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/30" />
-      )}
-    </button>
-  );
-}
-
 function ToolButton({
   label,
   icon: Icon,
@@ -624,15 +547,18 @@ function LogRow({ event }: { event: RepairEvent }) {
 function ResultOverlay({
   result,
   jobTitle,
+  deviceType,
   onRestart,
   onExit,
 }: {
   result: RepairResult;
   jobTitle: string;
+  deviceType: RepairDeviceType;
   onRestart: () => void;
   onExit: () => void;
 }) {
   const success = result.success;
+  const device = deviceType === "LAPTOP" ? "Laptop" : "PC";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
       <div className="animate-fade-in-up w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-lift">
@@ -641,7 +567,9 @@ function ResultOverlay({
             <span className="font-display text-4xl font-extrabold text-white">{result.grade}</span>
           </div>
           <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.28em] text-slate-500">{success ? "Misi Selesai" : "Misi Gagal"}</div>
-          <h1 className="font-display text-2xl font-extrabold">{success ? "PC Kembali Normal! 🎉" : "Perbaikan Belum Berhasil"}</h1>
+          <h1 className="font-display text-2xl font-extrabold">
+            {success ? `${device} Kembali Normal! 🎉` : "Perbaikan Belum Berhasil"}
+          </h1>
           <p className="mt-1 text-xs text-muted-foreground">{jobTitle}</p>
           <div className="mt-4 flex items-center justify-center gap-1.5">
             {[1, 2, 3].map((i) => (

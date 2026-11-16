@@ -86,6 +86,7 @@ function attemptState(attempt: NonNullable<AttemptWithJob>) {
       title: attempt.job.title,
       scenario: attempt.job.scenario,
       symptom: attempt.job.symptom,
+      deviceType: attempt.job.deviceType,
       difficulty: attempt.job.difficulty,
       timeLimitSec: attempt.job.timeLimitSec,
       maxHearts: attempt.job.maxHearts,
@@ -198,6 +199,7 @@ router.get("/jobs", async (req: any, res) => {
         id: j.id,
         title: j.title,
         symptom: j.symptom,
+        deviceType: j.deviceType,
         difficulty: j.difficulty,
         timeLimitSec: j.timeLimitSec,
         maxHearts: j.maxHearts,
@@ -221,6 +223,7 @@ router.get("/jobs/:id", async (req: any, res) => {
     title: job.title,
     scenario: job.scenario,
     symptom: job.symptom,
+    deviceType: job.deviceType,
     difficulty: job.difficulty,
     timeLimitSec: job.timeLimitSec,
     maxHearts: job.maxHearts,
@@ -296,7 +299,12 @@ router.post("/attempts/:id/action", async (req: any, res) => {
   if (elapsed >= attempt.job.timeLimitSec) {
     const done = await completeAttempt(attempt, false, { hearts: attempt.hearts });
     res.json({
-      event: { kind: "TIMEOUT", ok: false, title: "Waktu Habis", message: "Waktu perbaikan habis sebelum PC kembali normal." },
+      event: {
+        kind: "TIMEOUT",
+        ok: false,
+        title: "Waktu Habis",
+        message: `Waktu perbaikan habis sebelum ${attempt.job.deviceType === "LAPTOP" ? "laptop" : "PC"} kembali normal.`,
+      },
       ...done,
     });
     return;
@@ -412,6 +420,7 @@ router.post("/attempts/:id/action", async (req: any, res) => {
     }
   } else if (type === "POWER_TEST") {
     actions += 1;
+    const deviceLabel = attempt.job.deviceType === "LAPTOP" ? "Laptop" : "PC";
     const faults = attempt.job.components.filter((c) => c.isFaulty);
     const allFixed = faults.every((c) => fixed.includes(c.key));
     if (allFixed) {
@@ -420,7 +429,7 @@ router.post("/attempts/:id/action", async (req: any, res) => {
         event: {
           kind: "WIN",
           ok: true,
-          title: "PC Menyala Normal! 🎉",
+          title: `${deviceLabel} Menyala Normal! 🎉`,
           message: "Semua komponen bermasalah sudah diperbaiki. Misi selesai!",
         },
         ...done,
@@ -433,7 +442,7 @@ router.post("/attempts/:id/action", async (req: any, res) => {
     event = {
       kind: "HEART_LOST",
       ok: false,
-      title: "PC Masih Gagal Menyala",
+      title: `${deviceLabel} Masih Gagal Menyala`,
       message: "Masih ada komponen bermasalah yang belum diperbaiki. Periksa kembali hasil diagnosismu.",
       heartsLost: 1,
     };
@@ -494,6 +503,7 @@ router.get("/history", async (req: any, res) => {
         id: a.id,
         jobId: a.jobId,
         jobTitle: a.job.title,
+        deviceType: a.job.deviceType,
         skill: { code: a.job.skill.code, name: a.job.skill.name },
         difficulty: a.job.difficulty,
         score,

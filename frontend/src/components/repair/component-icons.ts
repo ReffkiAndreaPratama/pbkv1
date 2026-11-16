@@ -1,0 +1,82 @@
+import {
+  Battery,
+  BatteryCharging,
+  Cable,
+  Camera,
+  CircuitBoard,
+  Cpu,
+  Fan,
+  HardDrive,
+  Keyboard,
+  MemoryStick,
+  Monitor,
+  Mouse,
+  MousePointer2,
+  Network,
+  Plug,
+  Power,
+  Printer,
+  Radio,
+  Router,
+  Settings2,
+  Thermometer,
+  Usb,
+  Volume2,
+  Wifi,
+  Wrench,
+  Zap,
+  type LucideIcon,
+} from "lucide-react";
+import type { RepairComponentState } from "@/lib/types";
+
+const COMPONENT_ICON: Record<string, LucideIcon> = {
+  // PC
+  psu: Zap,
+  mobo: CircuitBoard,
+  cpu: Cpu,
+  ram: MemoryStick,
+  gpu: Monitor,
+  hdd: HardDrive,
+  fan: Fan,
+  cmos: Battery,
+  monitor: Monitor,
+  keyboard: Keyboard,
+  printer: Printer,
+  nic: Network,
+  router: Router,
+  cable_power: Cable,
+  cable_data: Cable,
+  cable_lan: Cable,
+  cable_display: Cable,
+  cable_usb: Cable,
+  cable_sata_power: Cable,
+  mouse: Mouse,
+  // Laptop
+  charger: Plug,
+  dc_jack: Plug,
+  battery: BatteryCharging,
+  power_button: Power,
+  laptop_fan: Fan,
+  thermal_paste: Thermometer,
+  ram_sodimm: MemoryStick,
+  ssd: HardDrive,
+  lcd: Monitor,
+  lcd_cable: Cable,
+  hinge: Settings2,
+  webcam: Camera,
+  laptop_keyboard: Keyboard,
+  keyboard_ribbon: Cable,
+  touchpad: MousePointer2,
+  touchpad_ribbon: Cable,
+  wifi_card: Wifi,
+  wifi_antenna: Radio,
+  usb_port: Usb,
+  speaker: Volume2,
+};
+
+export function componentIcon(component: Pick<RepairComponentState, "key" | "category">): LucideIcon {
+  return (
+    COMPONENT_ICON[component.key] ??
+    (component.category === "CABLE" ? Cable : component.category === "PERIPHERAL" ? Printer : Wrench)
+  );
+}

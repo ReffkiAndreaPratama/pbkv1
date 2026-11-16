@@ -7,7 +7,9 @@ import {
   HardDrive,
   Heart,
   History,
+  Laptop,
   Monitor,
+  MonitorCog,
   Power,
   Printer,
   Search,
@@ -25,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CardGridSkeleton, EmptyState } from "@/components/ui/feedback";
 import { cn, difficultyColor, difficultyLabel, formatDate, formatTime } from "@/lib/utils";
-import type { Difficulty, RepairAttemptState, RepairHistoryItem, RepairJobListItem } from "@/lib/types";
+import type { Difficulty, RepairAttemptState, RepairDeviceType, RepairHistoryItem, RepairJobListItem } from "@/lib/types";
 
 const SKILL_ICON: Record<string, LucideIcon> = {
   POWER: Zap,
@@ -43,12 +45,23 @@ const DIFF_FILTERS: { value: "ALL" | Difficulty; label: string }[] = [
   { value: "HARD", label: "Sulit" },
 ];
 
+const DEVICE_FILTERS: { value: "ALL" | RepairDeviceType; label: string; icon: LucideIcon }[] = [
+  { value: "ALL", label: "Semua perangkat", icon: Wrench },
+  { value: "PC", label: "PC", icon: MonitorCog },
+  { value: "LAPTOP", label: "Laptop", icon: Laptop },
+];
+
+function deviceLabel(deviceType: RepairDeviceType): string {
+  return deviceType === "LAPTOP" ? "Laptop" : "PC";
+}
+
 export function RepairIndexPage() {
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<RepairJobListItem[] | null>(null);
   const [history, setHistory] = useState<RepairHistoryItem[]>([]);
   const [search, setSearch] = useState("");
   const [diff, setDiff] = useState<"ALL" | Difficulty>("ALL");
+  const [device, setDevice] = useState<"ALL" | RepairDeviceType>("ALL");
   const [starting, setStarting] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,21 +93,25 @@ export function RepairIndexPage() {
 
   const visible = jobs.filter(
     (j) =>
+      (device === "ALL" || j.deviceType === device) &&
       (diff === "ALL" || j.difficulty === diff) &&
       (search.trim() === "" ||
         j.title.toLowerCase().includes(search.trim().toLowerCase()) ||
         j.skill.name.toLowerCase().includes(search.trim().toLowerCase()) ||
-        j.symptom.toLowerCase().includes(search.trim().toLowerCase()))
+        j.symptom.toLowerCase().includes(search.trim().toLowerCase()) ||
+        deviceLabel(j.deviceType).toLowerCase().includes(search.trim().toLowerCase()))
   );
 
   const totalSuccess = jobs.reduce((a, j) => a + j.successCount, 0);
   const best = jobs.reduce((a, j) => Math.max(a, j.bestScore ?? 0), 0);
+  const pcCount = jobs.filter((j) => j.deviceType === "PC").length;
+  const laptopCount = jobs.filter((j) => j.deviceType === "LAPTOP").length;
 
   return (
     <div className="animate-fade-in">
       <PageHeader
-        title="Bengkel PC — Simulasi Perbaikan"
-        subtitle="Bukan ujian pilihan ganda. Kamu memegang obeng: inspeksi komponen, pakai alat ukur, ganti/reseat bagian rusak, lalu nyalakan PC. Nyawa terbatas, combo menambah skor."
+        title="Bengkel PC & Laptop — Simulasi Perbaikan"
+        subtitle="Bukan ujian pilihan ganda. Kamu memegang obeng: pilih komponen pada gambar PC/laptop, inspeksi, pakai alat ukur, ganti/reseat bagian rusak, lalu nyalakan perangkat. Nyawa terbatas, combo menambah skor."
       />
 
       {/* Hero / cara main */}
@@ -112,17 +129,36 @@ export function RepairIndexPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-[11px] text-slate-300 sm:grid-cols-4">
-            <Step n={1} text="Inspeksi komponen" />
-            <Step n={2} text="Tes pakai alat" />
+            <Step n={1} text="Pilih komponen di gambar" />
+            <Step n={2} text="Inspeksi & tes alat" />
             <Step n={3} text="Perbaiki bagian rusak" />
-            <Step n={4} text="Tes nyala PC" />
+            <Step n={4} text="Tes nyala perangkat" />
           </div>
         </div>
-        <div className="grid grid-cols-3 divide-x divide-white/10 border-t border-white/10 bg-slate-950/40 text-center">
-          <Stat label="Misi tersedia" value={String(jobs.length)} />
+        <div className="grid grid-cols-2 divide-x divide-y divide-white/10 border-t border-white/10 bg-slate-950/40 text-center sm:grid-cols-4 sm:divide-y-0">
+          <Stat label="Misi PC" value={String(pcCount)} />
+          <Stat label="Misi laptop" value={String(laptopCount)} />
           <Stat label="Perbaikan sukses" value={String(totalSuccess)} />
           <Stat label="Skor terbaik" value={String(best)} />
         </div>
+      </div>
+
+      <div className="mb-3 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filter perangkat">
+        {DEVICE_FILTERS.map((f) => (
+          <button
+            key={f.value}
+            type="button"
+            onClick={() => setDevice(f.value)}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors",
+              device === f.value
+                ? "border-slate-900 bg-slate-900 text-white"
+                : "border-border/70 bg-card text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            )}
+          >
+            <f.icon className="h-3.5 w-3.5" /> {f.label}
+          </button>
+        ))}
       </div>
 
       <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -197,6 +233,11 @@ export function RepairIndexPage() {
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-xs font-bold">{h.jobTitle}</span>
                   <span className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 font-semibold text-slate-600">
+                      {h.deviceType === "LAPTOP" ? <Laptop className="h-3 w-3" /> : <MonitorCog className="h-3 w-3" />}
+                      {deviceLabel(h.deviceType)}
+                    </span>
+                    <span aria-hidden>·</span>
                     <span>{h.skill.code}</span>
                     <span aria-hidden>·</span>
                     <span>{formatDate(h.completedAt)}</span>
@@ -234,7 +275,10 @@ function JobCard({ job, starting, onStart }: { job: RepairJobListItem; starting:
             </span>
             <div>
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{job.skill.code}</div>
-              <div className="text-xs text-slate-300">{job.skill.name}</div>
+              <div className="flex items-center gap-1.5 text-xs text-slate-300">
+                {job.deviceType === "LAPTOP" ? <Laptop className="h-3 w-3" /> : <MonitorCog className="h-3 w-3" />}
+                {deviceLabel(job.deviceType)} · {job.skill.name}
+              </div>
             </div>
           </div>
           <Badge className={cn(difficultyColor(job.difficulty), "shrink-0")}>{difficultyLabel(job.difficulty)}</Badge>

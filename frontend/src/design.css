@@ -3745,3 +3745,505 @@ body {
     font-size: 7.5px;
   }
 }
+
+/* ============ Bengkel: visual PC & laptop chassis ============ */
+.device-chassis {
+  position: relative;
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(circle at 20% 0%, rgba(37, 99, 235, .1), transparent 42%),
+    linear-gradient(160deg, #f4f7fb 0%, #eef3f9 100%);
+}
+
+.chassis-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.chassis-device-tag,
+.chassis-progress-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.chassis-device-tag {
+  padding: 5px 10px;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+}
+
+.chassis-progress-tag { color: #0f766e; }
+
+/* ---------- PC tower ---------- */
+.pc-chassis { display: flex; justify-content: center; }
+
+.pc-tower {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 2px solid #0b1220;
+  border-radius: 16px;
+  background: linear-gradient(90deg, #1f2937 0%, #111827 68%, #0b1220 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06), 0 18px 32px rgba(15, 23, 42, .28);
+}
+
+.pc-front {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6%;
+  padding: 9% 0;
+  border-left: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(180deg, #263241, #141d2b);
+}
+
+.pc-power-led {
+  width: 18%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 10px #34d399;
+}
+
+.pc-drive-bay {
+  width: 64%;
+  height: 7%;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .1);
+}
+
+.pc-vent {
+  width: 64%;
+  height: 26%;
+  margin-top: auto;
+  border-radius: 4px;
+  background: repeating-linear-gradient(180deg, rgba(255, 255, 255, .16) 0 2px, transparent 2px 7px);
+}
+
+.pc-mobo {
+  position: absolute;
+  top: 9%;
+  left: 6%;
+  width: 58%;
+  height: 61%;
+  border: 1px solid rgba(16, 185, 129, .28);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, .18), rgba(5, 150, 105, .06)),
+    repeating-linear-gradient(90deg, rgba(16, 185, 129, .16) 0 1px, transparent 1px 12px),
+    repeating-linear-gradient(0deg, rgba(16, 185, 129, .12) 0 1px, transparent 1px 12px),
+    #0d2b24;
+  box-shadow: inset 0 0 24px rgba(16, 185, 129, .08);
+}
+
+.pc-screw {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #475569;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .6);
+}
+
+/* ---------- Laptop ---------- */
+.laptop-chassis {
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.laptop-lid {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border: 2px solid #0b1220;
+  border-radius: 14px 14px 4px 4px;
+  background: linear-gradient(160deg, #334155, #0f172a 70%);
+  box-shadow: 0 16px 30px rgba(15, 23, 42, .25);
+}
+
+.laptop-screen {
+  position: absolute;
+  inset: 3.5% 3.5% 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .35);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 50% 40%, rgba(56, 189, 248, .2), transparent 55%),
+    linear-gradient(160deg, #0b1220, #0f2a3d);
+}
+
+.laptop-screen-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 6px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, .08), rgba(52, 211, 153, .06));
+}
+
+.laptop-screen-hint {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(125, 211, 252, .5);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.laptop-camera-dot {
+  position: absolute;
+  top: 1.4%;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: #0f172a;
+  box-shadow: inset 0 0 2px #000;
+}
+
+.laptop-hinge {
+  height: 7px;
+  margin: 0 5%;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, #1e293b, #0b1220);
+}
+
+.laptop-base {
+  position: relative;
+  aspect-ratio: 16 / 6;
+  overflow: hidden;
+  border: 2px solid #64748b;
+  border-radius: 4px 4px 12px 12px;
+  background: linear-gradient(180deg, #cbd5e1, #94a3b8);
+  box-shadow: 0 14px 24px rgba(15, 23, 42, .18);
+}
+
+.laptop-deck {
+  position: absolute;
+  inset: 6% 5%;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #e2e8f0, #cbd5e1);
+}
+
+.laptop-keyboard-grid {
+  position: absolute;
+  top: 8%;
+  left: 7%;
+  width: 62%;
+  height: 54%;
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(90deg, rgba(15, 23, 42, .14) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(0deg, rgba(15, 23, 42, .14) 0 1px, transparent 1px 8px),
+    #b8c4d4;
+}
+
+.laptop-internals {
+  position: relative;
+  margin-top: 14px;
+  padding-top: 16px;
+}
+
+.laptop-internals-label {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.laptop-internals-stage {
+  position: relative;
+  aspect-ratio: 16 / 5;
+  overflow: hidden;
+  border: 2px solid #1e293b;
+  border-radius: 10px;
+  background: #0f172a;
+}
+
+.laptop-pcb {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(16, 185, 129, .14) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(0deg, rgba(16, 185, 129, .1) 0 1px, transparent 1px 14px),
+    linear-gradient(135deg, #0b3b30, #0a2a23);
+}
+
+/* ---------- hotspots ---------- */
+.chassis-hotspot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding: 4px 3px;
+  overflow: hidden;
+  color: #e2e8f0;
+  text-align: center;
+  border: 1.5px solid rgba(148, 163, 184, .5);
+  border-radius: 9px;
+  background: rgba(30, 41, 59, .78);
+  backdrop-filter: blur(2px);
+  transition: transform .15s ease, border-color .15s, background .15s, box-shadow .15s;
+}
+
+.chassis-hotspot:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #7dd3fc;
+  background: rgba(30, 64, 90, .9);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, .16);
+}
+
+.chassis-hotspot.is-inspected {
+  border-color: #38bdf8;
+  background: rgba(8, 47, 73, .9);
+}
+
+.chassis-hotspot.is-fixed {
+  border-color: #34d399;
+  background: rgba(6, 78, 59, .92);
+}
+
+.chassis-hotspot.is-selected {
+  border-color: #fbbf24;
+  background: rgba(69, 52, 8, .92);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, .28), 0 8px 18px rgba(0, 0, 0, .28);
+}
+
+.chassis-hotspot:disabled { cursor: default; }
+
+.chassis-hotspot-icon { display: grid; place-items: center; }
+.chassis-hotspot-icon svg { width: 15px; height: 15px; }
+
+.chassis-hotspot-label {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 8.5px;
+  font-weight: 800;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.chassis-hotspot.is-compact .chassis-hotspot-icon svg { width: 13px; height: 13px; }
+
+.chassis-hotspot-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 11px;
+  height: 11px;
+}
+.chassis-hotspot-badge.is-done { color: #6ee7b7; }
+.chassis-hotspot-badge.is-seen { color: #7dd3fc; }
+
+/* Light hotspots on laptop lid & deck */
+.laptop-lid .chassis-hotspot,
+.laptop-base .chassis-hotspot {
+  color: #1e293b;
+  border-color: rgba(100, 116, 139, .45);
+  background: rgba(255, 255, 255, .84);
+}
+
+.laptop-lid .chassis-hotspot:hover:not(:disabled),
+.laptop-base .chassis-hotspot:hover:not(:disabled) {
+  border-color: #0284c7;
+  background: #f0f9ff;
+}
+
+.laptop-lid .chassis-hotspot.is-inspected,
+.laptop-base .chassis-hotspot.is-inspected {
+  color: #075985;
+  border-color: #0284c7;
+  background: #e0f2fe;
+}
+
+.laptop-lid .chassis-hotspot.is-fixed,
+.laptop-base .chassis-hotspot.is-fixed {
+  color: #065f46;
+  border-color: #059669;
+  background: #d1fae5;
+}
+
+.laptop-lid .chassis-hotspot.is-selected,
+.laptop-base .chassis-hotspot.is-selected {
+  color: #78350f;
+  border-color: #d97706;
+  background: #fef3c7;
+  box-shadow: 0 0 0 3px rgba(217, 119, 6, .2);
+}
+
+/* ---------- desk tray ---------- */
+.chassis-tray {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+}
+
+.chassis-tray-label {
+  display: block;
+  margin-bottom: 8px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.chassis-tray-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chassis-tray-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  color: #334155;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  transition: .15s;
+}
+
+.chassis-tray-item:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #f0f7ff;
+}
+
+.chassis-tray-item.is-inspected {
+  color: #0369a1;
+  border-color: #7dd3fc;
+  background: #f0f9ff;
+}
+
+.chassis-tray-item.is-fixed {
+  color: #047857;
+  border-color: #6ee7b7;
+  background: #ecfdf5;
+}
+
+.chassis-tray-item.is-selected {
+  color: #92400e;
+  border-color: #f59e0b;
+  background: #fffbeb;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, .16);
+}
+
+.chassis-tray-icon { display: grid; place-items: center; }
+.chassis-tray-icon svg { width: 13px; height: 13px; }
+
+.chassis-tray-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chassis-tray-badge { width: 12px; height: 12px; }
+.chassis-tray-badge.is-done { color: #059669; }
+.chassis-tray-badge.is-seen { color: #0284c7; }
+
+@media (max-width: 680px) {
+  .device-chassis { padding: 10px; }
+  .pc-tower { max-width: 360px; }
+  .chassis-hotspot-label { font-size: 7.5px; }
+  .chassis-hotspot-icon svg { width: 13px; height: 13px; }
+  .laptop-internals-stage { aspect-ratio: 16 / 6.5; }
+  .chassis-tray-name { max-width: 96px; }
+}
+
+/* ---------- backdrop hotspots (motherboard / LCD panel) ---------- */
+.chassis-hotspot.is-backdrop,
+.laptop-lid .chassis-hotspot.is-backdrop {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 5px 6px;
+  color: #a7f3d0;
+  border: 1.5px dashed rgba(52, 211, 153, .45);
+  background: rgba(6, 78, 59, .16);
+  backdrop-filter: none;
+}
+
+.chassis-hotspot.is-backdrop .chassis-hotspot-label {
+  margin-top: 3px;
+}
+
+.laptop-lid .chassis-hotspot.is-backdrop {
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, .5);
+  background: rgba(8, 47, 73, .14);
+}
+
+.chassis-hotspot.is-backdrop .chassis-hotspot-label {
+  max-width: calc(100% - 8px);
+  text-align: left;
+  font-size: 8px;
+  letter-spacing: .02em;
+}
+
+.chassis-hotspot.is-backdrop:hover:not(:disabled),
+.laptop-lid .chassis-hotspot.is-backdrop:hover:not(:disabled) {
+  transform: none;
+  border-color: #6ee7b7;
+  background: rgba(6, 78, 59, .26);
+  box-shadow: none;
+}
+
+.laptop-lid .chassis-hotspot.is-backdrop:hover:not(:disabled) {
+  border-color: #7dd3fc;
+  background: rgba(8, 47, 73, .24);
+}
+
+.chassis-hotspot.is-backdrop.is-inspected {
+  background: rgba(8, 47, 73, .28);
+}
+
+.chassis-hotspot.is-backdrop.is-fixed {
+  background: rgba(6, 78, 59, .3);
+}
+
+.chassis-hotspot.is-backdrop.is-selected {
+  border-color: #fbbf24;
+  background: rgba(69, 52, 8, .28);
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, .35);
+}

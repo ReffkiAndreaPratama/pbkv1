@@ -24,6 +24,7 @@ export type SeedRepairJob = {
   scenario: string;
   symptom: string;
   skill: string; // Skill.code
+  deviceType?: "PC" | "LAPTOP";
   difficulty: "EASY" | "MEDIUM" | "HARD";
   timeLimitSec: number;
   maxHearts: number;
@@ -722,6 +723,338 @@ export const REPAIR_JOBS: SeedRepairJob[] = [
         fixType: "RECONNECT",
         inspectClue: "Monitor menampilkan desktop normal.",
         readings: { VISUAL: "Tampilan normal." },
+      },
+    ],
+  },
+
+  // ============================================================ LAPTOP
+  {
+    title: "Laptop Mati Total Tanpa Daya",
+    scenario:
+      "Laptop milik mahasiswa tidak menyala sama sekali. Lampu indikator charger mati, dan laptop hanya hidup sebentar saat charger digerakkan. Baterai sudah lama tidak pernah diganti.",
+    symptom: "Laptop tidak menyala; LED charger mati dan tidak ada respons saat tombol power ditekan.",
+    skill: "POWER",
+    deviceType: "LAPTOP",
+    difficulty: "EASY",
+    timeLimitSec: 170,
+    maxHearts: 3,
+    components: [
+      {
+        key: "charger", name: "Adaptor Charger", category: "POWER", slot: "charger",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Adaptor charger mati — tidak mengeluarkan tegangan",
+        replacementName: "Adaptor charger 65W baru",
+        inspectClue: "Lampu LED pada adaptor charger tidak menyala saat dicolok.",
+        readings: {
+          VISUAL: "Adaptor terasa dingin dan LED mati.",
+          MULTIMETER: "Output adaptor 0.0V (seharusnya 19V). Adaptor rusak.",
+        },
+      },
+      {
+        key: "dc_jack", name: "Port DC Jack", category: "POWER", slot: "dc_jack",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Port DC jack longgar — koneksi terputus",
+        replacementName: "DC jack laptop baru",
+        inspectClue: "Konektor charger goyang di port dan sesekali memutus kontak.",
+        readings: {
+          VISUAL: "Pin tengah DC jack terlihat miring.",
+          MULTIMETER: "Kontinuitas port terputus saat kabel charger digerakkan.",
+        },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai terpasang benar, tetapi kapasitasnya sudah menurun.",
+        readings: { VISUAL: "Tidak ada tanda baterai menggembung." },
+      },
+      {
+        key: "power_button", name: "Tombol Power", category: "POWER", slot: "power_button",
+        fixType: "RECONNECT",
+        inspectClue: "Tombol power terasa normal saat ditekan.",
+        readings: { VISUAL: "Tombol tidak macet." },
+      },
+      {
+        key: "mobo", name: "Motherboard Laptop", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard bersih, tidak ada bekas korsleting.",
+        readings: { VISUAL: "Tidak ada komponen gosong." },
+      },
+      {
+        key: "laptop_fan", name: "Kipas Laptop", category: "CORE", slot: "laptop_fan",
+        fixType: "CLEAN",
+        inspectClue: "Kipas berdebu tipis tetapi masih bisa berputar.",
+        readings: { VISUAL: "Debu ringan pada sirip kipas." },
+      },
+    ],
+  },
+  {
+    title: "Layar Laptop Blank Saat Dibuka",
+    scenario:
+      "Laptop menyala dan lampu power aktif, tetapi layar tetap gelap. Saat tutup layar digerakkan sedikit, tampilan kadang muncul lalu hilang lagi.",
+    symptom: "Layar blank; tampilan kadang muncul saat engsel layar digerakkan.",
+    skill: "DISPLAY",
+    deviceType: "LAPTOP",
+    difficulty: "MEDIUM",
+    timeLimitSec: 210,
+    maxHearts: 3,
+    components: [
+      {
+        key: "lcd_cable", name: "Kabel Flex LCD", category: "CABLE", slot: "lcd_cable",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel flex LCD longgar di engsel",
+        inspectClue: "Kabel flex terjepit di area engsel dan konektornya tidak terkunci.",
+        readings: {
+          VISUAL: "Kabel flex terlipat tajam di dekat engsel.",
+          MULTIMETER: "Kontinuitas kabel flex terputus saat engsel digerakkan.",
+        },
+      },
+      {
+        key: "hinge", name: "Engsel Layar", category: "CORE", slot: "hinge",
+        isFaulty: true, fixType: "RESEAT", faultLabel: "Engsel kendor — menjepit kabel flex",
+        inspectClue: "Engsel kiri terasa sangat kendor dan menekan jalur kabel.",
+        readings: { VISUAL: "Engsel kiri goyang dan bautnya longgar." },
+      },
+      {
+        key: "lcd", name: "Panel LCD", category: "DISPLAY", slot: "lcd",
+        fixType: "REPLACE",
+        inspectClue: "Panel LCD tidak retak dan tidak ada garis permanen.",
+        readings: { VISUAL: "Tidak ada dead pixel atau retakan." },
+      },
+      {
+        key: "webcam", name: "Kamera Webcam", category: "PERIPHERAL", slot: "webcam",
+        fixType: "RECONNECT",
+        inspectClue: "Webcam terpasang normal pada bezel atas.",
+        readings: { VISUAL: "Lensa webcam bersih." },
+      },
+      {
+        key: "mobo", name: "Motherboard Laptop", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal dan tidak ada kerusakan.",
+        readings: { VISUAL: "Konektor display di motherboard utuh." },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai normal, tidak menggembung.",
+        readings: { VISUAL: "Kondisi fisik baterai baik." },
+      },
+    ],
+  },
+  {
+    title: "Laptop Cepat Panas & Mati Sendiri",
+    scenario:
+      "Laptop mati mendadak setelah 10–15 menit dipakai, terutama saat membuka banyak tab browser. Bagian bawah terasa sangat panas dan kipas terdengar berisik.",
+    symptom: "Laptop overheat lalu mati sendiri; kipas berisik dan bagian bawah panas.",
+    skill: "POWER",
+    deviceType: "LAPTOP",
+    difficulty: "MEDIUM",
+    timeLimitSec: 220,
+    maxHearts: 3,
+    components: [
+      {
+        key: "laptop_fan", name: "Kipas Laptop", category: "CORE", slot: "laptop_fan",
+        isFaulty: true, fixType: "CLEAN", faultLabel: "Kipas tersumbat debu — aliran udara tersendat",
+        inspectClue: "Sirip kipas dipenuhi debu tebal dan putarannya berat.",
+        readings: {
+          VISUAL: "Debu menumpuk menutup sirip heatsink.",
+          SOFTWARE: "Suhu CPU 95°C saat idle, kipas berputar tidak stabil.",
+        },
+      },
+      {
+        key: "thermal_paste", name: "Thermal Paste CPU", category: "CORE", slot: "thermal_paste",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Thermal paste kering — perpindahan panas buruk",
+        replacementName: "Thermal paste baru",
+        inspectClue: "Pasta thermal di atas CPU sudah kering dan retak.",
+        readings: {
+          VISUAL: "Pasta thermal mengeras dan tidak merata.",
+          SOFTWARE: "Suhu CPU naik cepat meski beban ringan.",
+        },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai tidak menggembung.",
+        readings: { VISUAL: "Kondisi baterai normal." },
+      },
+      {
+        key: "ram_sodimm", name: "RAM SODIMM", category: "CORE", slot: "ram_sodimm",
+        fixType: "RESEAT",
+        inspectClue: "RAM SODIMM terpasang rapi.",
+        readings: { SOFTWARE: "Memori lulus uji dasar." },
+      },
+      {
+        key: "ssd", name: "SSD NVMe", category: "STORAGE", slot: "ssd",
+        fixType: "RESEAT",
+        inspectClue: "SSD terpasang kencang dan tidak panas berlebih.",
+        readings: { SOFTWARE: "SMART SSD: status sehat." },
+      },
+      {
+        key: "charger", name: "Adaptor Charger", category: "POWER", slot: "charger",
+        fixType: "REPLACE",
+        inspectClue: "Charger mengeluarkan tegangan normal.",
+        readings: { MULTIMETER: "Output 19.2V stabil." },
+      },
+    ],
+  },
+  {
+    title: "Keyboard & Touchpad Laptop Mati",
+    scenario:
+      "Setelah laptop dibersihkan, keyboard dan touchpad sama sekali tidak merespons. Keyboard eksternal lewat USB tetap berfungsi normal.",
+    symptom: "Keyboard internal dan touchpad tidak merespons; perangkat USB eksternal normal.",
+    skill: "PERIPHERAL",
+    deviceType: "LAPTOP",
+    difficulty: "EASY",
+    timeLimitSec: 180,
+    maxHearts: 3,
+    components: [
+      {
+        key: "keyboard_ribbon", name: "Kabel Ribbon Keyboard", category: "CABLE", slot: "keyboard_ribbon",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel ribbon keyboard tidak terkunci",
+        inspectClue: "Konektor ribbon keyboard setengah keluar dari soket ZIF.",
+        readings: {
+          VISUAL: "Klip ZIF terbuka dan ribbon miring.",
+          MULTIMETER: "Kontinuitas ribbon terputus pada beberapa pin.",
+        },
+      },
+      {
+        key: "touchpad_ribbon", name: "Kabel Ribbon Touchpad", category: "CABLE", slot: "touchpad_ribbon",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel ribbon touchpad terlepas",
+        inspectClue: "Ribbon touchpad tidak terpasang pada soketnya.",
+        readings: { VISUAL: "Konektor ribbon touchpad kosong." },
+      },
+      {
+        key: "laptop_keyboard", name: "Keyboard Laptop", category: "PERIPHERAL", slot: "laptop_keyboard",
+        fixType: "REPLACE",
+        inspectClue: "Tombol keyboard tidak macet dan tidak ada cairan.",
+        readings: { VISUAL: "Keycap lengkap, tidak ada kerusakan." },
+      },
+      {
+        key: "touchpad", name: "Touchpad", category: "PERIPHERAL", slot: "touchpad",
+        fixType: "RECONNECT",
+        inspectClue: "Permukaan touchpad bersih dan tidak retak.",
+        readings: { VISUAL: "Touchpad tidak penyok." },
+      },
+      {
+        key: "usb_port", name: "Port USB", category: "PERIPHERAL", slot: "usb_port",
+        fixType: "CLEAN",
+        inspectClue: "Port USB berfungsi normal saat dites dengan mouse eksternal.",
+        readings: { SOFTWARE: "Perangkat USB eksternal terdeteksi." },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai normal.",
+        readings: { VISUAL: "Tidak ada kerusakan." },
+      },
+    ],
+  },
+  {
+    title: "Laptop Tidak Menemukan Wi-Fi",
+    scenario:
+      "Laptop tidak menampilkan satu pun jaringan Wi-Fi. Ikon Wi-Fi hilang dari taskbar, tetapi koneksi LAN lewat adaptor USB berjalan normal.",
+    symptom: "Tidak ada jaringan Wi-Fi terdeteksi; ikon Wi-Fi hilang dari taskbar.",
+    skill: "NETWORK",
+    deviceType: "LAPTOP",
+    difficulty: "MEDIUM",
+    timeLimitSec: 200,
+    maxHearts: 3,
+    components: [
+      {
+        key: "wifi_card", name: "Kartu Wi-Fi (M.2)", category: "NETWORK", slot: "wifi_card",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "Kartu Wi-Fi rusak — tidak terdeteksi sistem",
+        replacementName: "Kartu Wi-Fi M.2 baru",
+        inspectClue: "Kartu Wi-Fi terpasang, tetapi tidak muncul di Device Manager.",
+        readings: {
+          VISUAL: "Kartu Wi-Fi terpasang miring pada slot M.2.",
+          SOFTWARE: "Adapter Wi-Fi tidak terdeteksi (code 10).",
+          POST_CARD: "Perangkat jaringan nirkabel tidak terdaftar.",
+        },
+      },
+      {
+        key: "wifi_antenna", name: "Kabel Antena Wi-Fi", category: "CABLE", slot: "wifi_antenna",
+        isFaulty: true, fixType: "RECONNECT", faultLabel: "Kabel antena Wi-Fi terlepas",
+        inspectClue: "Kedua konektor antena (MAIN/AUX) terlepas dari kartu Wi-Fi.",
+        readings: {
+          VISUAL: "Kabel antena menggantung di samping kartu.",
+          MULTIMETER: "Kontinuitas antena terputus.",
+        },
+      },
+      {
+        key: "router", name: "Router Wi-Fi", category: "CORE", slot: "router",
+        fixType: "RECONNECT",
+        inspectClue: "Router menyala dan memancarkan SSID normal.",
+        readings: { VISUAL: "Lampu Wi-Fi router aktif." },
+      },
+      {
+        key: "mobo", name: "Motherboard Laptop", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Slot M.2 bersih." },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai normal.",
+        readings: { VISUAL: "Kondisi baik." },
+      },
+      {
+        key: "charger", name: "Adaptor Charger", category: "POWER", slot: "charger",
+        fixType: "REPLACE",
+        inspectClue: "Charger normal.",
+        readings: { MULTIMETER: "Tegangan output normal." },
+      },
+    ],
+  },
+  {
+    title: "Laptop Lambat & SSD Nyaris Penuh",
+    scenario:
+      "Laptop bekas milik staf lambat saat booting dan sering freeze saat membuka file besar. Kapasitas penyimpanan tersisa sangat sedikit dan RAM terdeteksi lebih kecil dari yang seharusnya.",
+    symptom: "Booting lambat, sering freeze, kapasitas storage nyaris penuh.",
+    skill: "STORAGE",
+    deviceType: "LAPTOP",
+    difficulty: "HARD",
+    timeLimitSec: 240,
+    maxHearts: 3,
+    components: [
+      {
+        key: "ssd", name: "SSD NVMe", category: "STORAGE", slot: "ssd",
+        isFaulty: true, fixType: "REPLACE", faultLabel: "SSD rusak — banyak bad block dan kapasitas penuh",
+        replacementName: "SSD NVMe 1TB baru",
+        inspectClue: "SMART SSD menunjukkan banyak bad block dan sisa kapasitas < 3%.",
+        readings: {
+          VISUAL: "Stiker SSD menghitam, suhu tinggi saat diakses.",
+          SOFTWARE: "SMART: Reallocated Blocks tinggi, status WARNING. Sisa kapasitas 2%.",
+        },
+      },
+      {
+        key: "ram_sodimm", name: "RAM SODIMM", category: "CORE", slot: "ram_sodimm",
+        isFaulty: true, fixType: "RESEAT", faultLabel: "RAM SODIMM longgar — hanya 4GB terdeteksi",
+        inspectClue: "Modul RAM kedua tidak terkunci penuh pada slot.",
+        readings: {
+          VISUAL: "Klip slot RAM bawah terbuka.",
+          SOFTWARE: "RAM terdeteksi 4GB dari 8GB terpasang.",
+        },
+      },
+      {
+        key: "laptop_fan", name: "Kipas Laptop", category: "CORE", slot: "laptop_fan",
+        fixType: "CLEAN",
+        inspectClue: "Kipas berdebu dan putarannya sedikit berat.",
+        readings: { VISUAL: "Debu menutup sebagian sirip kipas." },
+      },
+      {
+        key: "battery", name: "Baterai Laptop", category: "POWER", slot: "battery",
+        fixType: "RESEAT",
+        inspectClue: "Baterai normal.",
+        readings: { VISUAL: "Tidak menggembung." },
+      },
+      {
+        key: "mobo", name: "Motherboard Laptop", category: "CORE", slot: "mobo",
+        fixType: "RESEAT",
+        inspectClue: "Motherboard normal.",
+        readings: { VISUAL: "Slot RAM dan M.2 bersih." },
+      },
+      {
+        key: "charger", name: "Adaptor Charger", category: "POWER", slot: "charger",
+        fixType: "REPLACE",
+        inspectClue: "Charger normal.",
+        readings: { MULTIMETER: "Tegangan output stabil." },
       },
     ],
   },

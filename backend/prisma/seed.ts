@@ -102,6 +102,7 @@ async function seedRepairJob(job: SeedRepairJob, skillId: (code: string) => stri
       title: job.title,
       scenario: job.scenario,
       symptom: job.symptom,
+      deviceType: job.deviceType ?? "PC",
       difficulty: job.difficulty,
       timeLimitSec: job.timeLimitSec,
       maxHearts: job.maxHearts,

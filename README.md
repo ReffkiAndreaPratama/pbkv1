@@ -1,6 +1,6 @@
 # TechTutor
 
-Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Komputer**. Siswa belajar mendiagnosis dan memperbaiki komputer/PC lewat simulasi kasus interaktif (decision-tree), **simulasi perbaikan langsung "Bengkel PC"** (inspeksi komponen, alat ukur, tindakan perbaikan, tes nyala), kuis adaptif per-skill, materi bacaan, tutor AI berbasis template (mock), dan gamification (XP, level, streak, achievements, leaderboard).
+Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Komputer**. Siswa belajar mendiagnosis dan memperbaiki komputer/PC maupun laptop lewat simulasi kasus interaktif (decision-tree), **simulasi perbaikan langsung "Bengkel PC & Laptop"** (inspeksi komponen pada gambar perangkat, alat ukur, tindakan perbaikan, tes nyala), kuis adaptif per-skill, materi bacaan, tutor AI berbasis template (mock), dan gamification (XP, level, streak, achievements, leaderboard).
 
 ## Demo account
 
@@ -10,7 +10,7 @@ Platform pembelajaran adaptif untuk mata kuliah **Troubleshooting & Perawatan Ko
 | Siswa | `demo1@techtutor.app`    | `demo1234` |
 | Siswa | `demo2@techtutor.app`    | `demo1234` |
 
-Database telah di-seed dengan **6 skill, 32 kasus simulasi (350 node), 54 soal kuis, 24 materi, 15 achievement, 12 misi Bengkel PC (74 komponen), dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
+Database telah di-seed dengan **6 skill, 32 kasus simulasi (350 node), 54 soal kuis, 24 materi, 15 achievement, 18 misi Bengkel (12 PC + 6 laptop, 110 komponen), dan 3 akun**. Akun demo1 sudah melewati onboarding + pretest/posttest sehingga dashboard dan rekomendasi adaptif langsung terisi.
 
 ## Stack
 
@@ -87,7 +87,7 @@ npm run test
 | Quiz | `GET/POST /api/quiz/{pretest,posttest,adaptive}` · `/start` · `/submit` | Mastery diinisialisasi/diperbarui per jawaban |
 | Cases | `GET /api/cases` · `/path` · `/history` · `/:id` · `/:id/start` | Rekomendasi adaptif per skill |
 | Simulation | `GET /api/simulation/:attemptId` · `submit` · `hint` · `abandon` | Decision tree: condition/effect, SOL/FAIL, skor metrik |
-| Bengkel PC | `GET /api/repair/jobs` · `/jobs/:id` · `POST /jobs/:id/start` · `GET /attempts/:id` · `POST /attempts/:id/action` · `abandon` · `GET /history` | Simulasi perbaikan: INSPECT, TEST (VISUAL/MULTIMETER/POST_CARD/SOFTWARE), FIX (REPLACE/RESEAT/CLEAN/RECONNECT), POWER_TEST; nyawa, combo, timer, skor/grade/bintang; `/history` mengembalikan 12 sesi terakhir |
+| Bengkel PC & Laptop | `GET /api/repair/jobs` · `/jobs/:id` · `POST /jobs/:id/start` · `GET /attempts/:id` · `POST /attempts/:id/action` · `abandon` · `GET /history` | Simulasi perbaikan PC & laptop: INSPECT, TEST (VISUAL/MULTIMETER/POST_CARD/SOFTWARE), FIX (REPLACE/RESEAT/CLEAN/RECONNECT), POWER_TEST; tiap job punya `deviceType` (`PC`/`LAPTOP`), nyawa, combo, timer, skor/grade/bintang; `/history` mengembalikan 12 sesi terakhir |
 | Materials | `GET /api/materials` · `/:id` · `POST /:id/read` | Tandai selesai +15 XP |
 | AI Tutor | `POST /api/ai/chat` | Router intent deterministik (cheat → socratic, konsep, hint, gejala); tidak pernah spoiler jawaban |
 | Progress | `GET /api/progress/{mastery,summary,activity,achievements,leaderboard}` | Satu sumber penghitung XP/level (learningProfile) |
@@ -102,7 +102,7 @@ npm run test
 ## Fitur utama
 
 - **Simulator troubleshooting** — 32 kasus realistis dengan pohon keputusan bercabang; siswa memilih langkah diagnosis/tindakan, sistem menerapkan `condition`/`effect` sinyal, hingga mencapai SOL atau FAIL; skor dihitung dari akurasi, efisiensi langkah, waktu, dan penalti hint.
-- **Bengkel PC (simulasi perbaikan)** — 12 misi praktik langsung (2 per skill) di meja kerja interaktif: pilih komponen, inspeksi visual, ukur dengan multimeter/POST card/diagnostik software, lalu lakukan tindakan perbaikan yang tepat (ganti, reseat, bersihkan, sambung ulang) dan tekan **Tes Nyala**. Gamifikasi: 3 nyawa, combo multiplier, countdown, bintang, grade S–D, XP, mastery per skill, dan 3 achievement teknisi. Riwayat 12 perbaikan terakhir tampil di papan misi dan statistik perbaikan (jumlah, sukses, rata-rata, terbaik) ikut dihitung di `/api/progress/summary` serta dashboard. Data komponen rusak tidak pernah bocor ke klien sebelum didiagnosis.
+- **Bengkel PC & Laptop (simulasi perbaikan)** — 18 misi praktik langsung (3 per skill: 2 PC + 1 laptop) di meja kerja interaktif. Perangkat digambar dengan CSS: **tower PC** (motherboard, CPU, RAM, GPU, PSU, HDD, kipas, kabel) dan **laptop** (lid/layar, dek keyboard, panel bawah dengan cover dilepas). Klik hotspot komponen pada gambar (atau periferal/kabel di baki meja), inspeksi visual, ukur dengan multimeter/POST card/diagnostik software, lalu lakukan tindakan perbaikan yang tepat (ganti, reseat, bersihkan, sambung ulang) dan tekan **Tes Nyala**. Gamifikasi: 3 nyawa, combo multiplier, countdown, bintang, grade S–D, XP, mastery per skill, dan 3 achievement teknisi. Papan misi punya filter **Semua / PC / Laptop**, badge perangkat, dan riwayat 12 perbaikan terakhir; statistik perbaikan (jumlah, sukses, rata-rata, terbaik) ikut dihitung di `/api/progress/summary` serta dashboard. Data komponen rusak tidak pernah bocor ke klien sebelum didiagnosis.
 - **Hint bertahap 4 level** — dari pemancing socratic hingga jawaban penuh ("Jawab Langsung" terekam), memengaruhi skor.
 - **Adaptive path** — rekomendasi kasus/kuis/material per skill berdasarkan mastery (deterministik untuk input sama).
 - **AI Tutor (mock)** — router intent deterministik: menolak permintaan spoiler, memberi pertanyaan pemancing/hint, tidak pernah membocorkan jawaban.

@@ -230,11 +230,13 @@ export interface SimHistoryRow {
 export type RepairTool = "VISUAL" | "MULTIMETER" | "POST_CARD" | "SOFTWARE";
 export type RepairFixType = "REPLACE" | "RESEAT" | "CLEAN" | "RECONNECT";
 export type RepairStatus = "IN_PROGRESS" | "COMPLETED" | "ABANDONED";
+export type RepairDeviceType = "PC" | "LAPTOP";
 
 export interface RepairJobListItem {
   id: string;
   title: string;
   symptom: string;
+  deviceType: RepairDeviceType;
   difficulty: Difficulty;
   timeLimitSec: number;
   maxHearts: number;
@@ -267,6 +269,7 @@ export interface RepairAttemptState {
     title: string;
     scenario: string;
     symptom: string;
+    deviceType: RepairDeviceType;
     difficulty: Difficulty;
     timeLimitSec: number;
     maxHearts: number;
@@ -310,6 +313,7 @@ export interface RepairHistoryItem {
   id: string;
   jobId: string;
   jobTitle: string;
+  deviceType: RepairDeviceType;
   skill: { code: string; name: string };
   difficulty: Difficulty;
   score: number;

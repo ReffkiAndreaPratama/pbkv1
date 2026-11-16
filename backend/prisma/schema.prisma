@@ -356,6 +356,7 @@ model RepairJob {
   title        String
   scenario     String
   symptom      String
+  deviceType   String     @default("PC") // PC | LAPTOP
   difficulty   Difficulty @default(MEDIUM)
   timeLimitSec Int        @default(180)
   maxHearts    Int        @default(3)
