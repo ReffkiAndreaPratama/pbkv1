@@ -1,7 +1,7 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { ChevronRight, LayoutDashboard, LogOut, Medal, Menu, Trophy, X, UserRound, Activity } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ChevronRight, Flame, LayoutDashboard, LogOut, Medal, Menu, Trophy, X, UserRound, Activity, Zap } from "lucide-react";
+import { cn, formatNumber } from "@/lib/utils";
 import { adminNavItems, bottomNav, navItems } from "./nav";
 import { Logo } from "./logo";
 import { useAuth } from "@/lib/auth";
@@ -106,15 +106,26 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-progress">
-          <div className="mini-progress-head">
-            <span>Progress jalur</span>
-            <strong>{pathProgress}%</strong>
+          <div className="flex items-center justify-between">
+            <span className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.16em] text-slate-400">Level teknisi</span>
+            <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono-tech text-[10px] font-bold text-white">
+              {user?.profile?.level ?? 1}/10
+            </span>
           </div>
-          <div className="progress-track dark">
-            <span style={{ width: `${pathProgress}%` }} />
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <strong className="font-display text-2xl font-extrabold leading-none text-white">{user?.profile?.level ?? 1}</strong>
+            <div className="min-w-0 flex-1 pb-0.5">
+              <div className="mini-progress-head">
+                <span>Progress jalur</span>
+                <strong>{pathProgress}%</strong>
+              </div>
+              <div className="progress-track dark">
+                <span style={{ width: `${pathProgress}%` }} />
+              </div>
+            </div>
           </div>
           <p>
-            {jalurLabel(jalur)} · Level {user?.profile?.level ?? 1} · {user?.profile?.totalXp ?? 0} XP
+            {jalurLabel(jalur)} · {formatNumber(user?.profile?.totalXp ?? 0)} XP
           </p>
         </div>
       </aside>
@@ -125,46 +136,61 @@ export function AppShell() {
             <Menu size={20} />
           </button>
           <div className="topbar-copy">
-            <span>Jalur aktif</span>
-            <strong>{jalurLabel(jalur)}</strong>
+            <span>Ruang belajar</span>
+            <strong className="flex items-center gap-1.5">
+              TechTutor <ChevronRight className="h-3 w-3 text-slate-300" /> {jalurLabel(jalur)}
+            </strong>
           </div>
-          <div className="profile-wrap">
-            <button className="profile-button" onClick={() => setProfileOpen((v) => !v)} type="button">
-              <span className="avatar">{initials}</span>
-              <span className="profile-name">
-                <strong>{user?.name}</strong>
-                <small>{isAdmin ? "Administrator" : "Pelajar"}</small>
-              </span>
-              <ChevronRight size={16} />
-            </button>
-            {profileOpen && (
-              <div className="profile-popover">
-                <div>
+
+          <div className="ml-auto flex items-center gap-2">
+            <div className="hidden items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/80 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 shadow-sm sm:flex">
+              <Zap className="h-3.5 w-3.5 text-amber-500" />
+              {formatNumber(user?.profile?.totalXp ?? 0)}
+              <span className="text-slate-400">XP</span>
+            </div>
+            <div className="hidden items-center gap-1.5 rounded-full border border-orange-200/80 bg-orange-50/80 px-2.5 py-1.5 text-[11px] font-bold text-orange-700 shadow-sm sm:flex">
+              <Flame className="h-3.5 w-3.5" />
+              {user?.profile?.streakDays ?? 0}
+              <span className="font-medium text-orange-500/80">hari</span>
+            </div>
+            <div className="profile-wrap">
+              <button className="profile-button" onClick={() => setProfileOpen((v) => !v)} type="button">
+                <span className="avatar">{initials}</span>
+                <span className="profile-name">
                   <strong>{user?.name}</strong>
-                  <span>{user?.email}</span>
-                </div>
-                <button onClick={() => { setProfileOpen(false); navigate("/profile"); }} type="button">
-                  <UserRound size={17} /> Profil Saya
-                </button>
-                <button onClick={() => { setProfileOpen(false); navigate("/progress"); }} type="button">
-                  <Activity size={17} /> Progres Belajar
-                </button>
-                <button onClick={() => { setProfileOpen(false); navigate("/achievements"); }} type="button">
-                  <Trophy size={17} /> Pencapaian
-                </button>
-                <button onClick={() => { setProfileOpen(false); navigate("/leaderboard"); }} type="button">
-                  <Medal size={17} /> Papan Peringkat
-                </button>
-                {isAdmin && (
-                  <button onClick={() => { setProfileOpen(false); navigate("/admin"); }} type="button">
-                    <LayoutDashboard size={17} /> Panel Admin
+                  <small>{isAdmin ? "Administrator" : "Pelajar"}</small>
+                </span>
+                <ChevronRight size={16} />
+              </button>
+              {profileOpen && (
+                <div className="profile-popover">
+                  <div>
+                    <strong>{user?.name}</strong>
+                    <span>{user?.email}</span>
+                  </div>
+                  <button onClick={() => { setProfileOpen(false); navigate("/profile"); }} type="button">
+                    <UserRound size={17} /> Profil Saya
                   </button>
-                )}
-                <button onClick={handleLogout} type="button">
-                  <LogOut size={17} /> Keluar
-                </button>
-              </div>
-            )}
+                  <button onClick={() => { setProfileOpen(false); navigate("/progress"); }} type="button">
+                    <Activity size={17} /> Progres Belajar
+                  </button>
+                  <button onClick={() => { setProfileOpen(false); navigate("/achievements"); }} type="button">
+                    <Trophy size={17} /> Pencapaian
+                  </button>
+                  <button onClick={() => { setProfileOpen(false); navigate("/leaderboard"); }} type="button">
+                    <Medal size={17} /> Papan Peringkat
+                  </button>
+                  {isAdmin && (
+                    <button onClick={() => { setProfileOpen(false); navigate("/admin"); }} type="button">
+                      <LayoutDashboard size={17} /> Panel Admin
+                    </button>
+                  )}
+                  <button onClick={handleLogout} type="button">
+                    <LogOut size={17} /> Keluar
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </header>
 

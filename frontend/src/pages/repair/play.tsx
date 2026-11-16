@@ -12,7 +12,10 @@ import {
   Gauge,
   Heart,
   HelpCircle,
+  Keyboard,
+  Laptop,
   Lightbulb,
+  MonitorCog,
   Play,
   Power,
   RefreshCw,
@@ -24,6 +27,7 @@ import {
   VolumeX,
   Wrench,
   XCircle,
+  Zap,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -32,7 +36,6 @@ import { playSound, isSoundMuted, toggleSoundMuted } from "@/lib/sound";
 import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { DeviceChassis } from "@/components/repair/device-chassis";
 import { RepairTutorial, markRepairTutorialSeen } from "@/components/repair/repair-tutorial";
 import { componentIcon } from "@/components/repair/component-icons";
@@ -48,11 +51,11 @@ import type {
 } from "@/lib/types";
 
 // ---------------------------------------------------------------- config
-const TOOLS: { key: RepairTool; label: string; short: string; desc: string; icon: LucideIcon }[] = [
-  { key: "VISUAL", label: "Inspeksi Visual", short: "Visual", desc: "Cek kondisi fisik komponen", icon: Eye },
-  { key: "MULTIMETER", label: "Multimeter", short: "Multimeter", desc: "Ukur tegangan & kontinuitas", icon: Gauge },
-  { key: "POST_CARD", label: "POST Card", short: "POST", desc: "Baca kode diagnostik POST", icon: Cpu },
-  { key: "SOFTWARE", label: "Diagnostik Software", short: "Software", desc: "SMART / device manager", icon: Terminal },
+const TOOLS: { key: RepairTool; label: string; short: string; desc: string; icon: LucideIcon; hint: string }[] = [
+  { key: "VISUAL", label: "Inspeksi Visual", short: "Inspeksi", desc: "Cek kondisi fisik komponen", icon: Eye, hint: "1" },
+  { key: "MULTIMETER", label: "Multimeter", short: "Multimeter", desc: "Ukur tegangan & kontinuitas", icon: Gauge, hint: "2" },
+  { key: "POST_CARD", label: "POST Card", short: "POST", desc: "Baca kode diagnostik POST", icon: Cpu, hint: "3" },
+  { key: "SOFTWARE", label: "Diagnostik Software", short: "Software", desc: "SMART / device manager", icon: Terminal, hint: "4" },
 ];
 
 const FIXES: { key: RepairFixType; label: string; desc: string; icon: LucideIcon }[] = [
@@ -67,6 +70,10 @@ function formatClock(sec: number): string {
   const m = Math.floor(s / 60);
   const r = s % 60;
   return `${m}:${String(r).padStart(2, "0")}`;
+}
+
+function deviceLabel(deviceType: RepairDeviceType): string {
+  return deviceType === "LAPTOP" ? "Laptop" : "PC";
 }
 
 // ---------------------------------------------------------------- page
@@ -86,12 +93,15 @@ export function RepairPlayPage() {
   const timeoutRef = useRef(false);
   const eventId = useRef(0);
 
+  const selected = state?.components.find((c) => c.key === selectedKey) ?? null;
+  const done = state ? state.status !== "IN_PROGRESS" : false;
+
   useLeaveGuard(!loading && !result && state?.status === "IN_PROGRESS");
 
   const handleSelect = useCallback((key: string) => {
     setSelectedKey(key);
     playSound("select");
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches) {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1279px)").matches) {
       window.setTimeout(() => {
         document.getElementById("diagnosis-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 80);
@@ -163,8 +173,7 @@ export function RepairPlayPage() {
         if (res.result) {
           setResult(res.result);
           playSound(res.result.success ? "win" : "lose");
-          const device = res.state.job.deviceType === "LAPTOP" ? "Laptop" : "PC";
-          if (res.result.success) toast.success(`${device} berhasil diperbaiki! 🎉`);
+          if (res.result.success) toast.success(`${deviceLabel(res.state.job.deviceType)} berhasil diperbaiki! 🎉`);
           else toast.error("Misi perbaikan gagal.");
         } else if (res.event.kind === "HEART_LOST") {
           playSound("wrong");
@@ -194,6 +203,29 @@ export function RepairPlayPage() {
     void act({ type: "TIMEOUT" });
   }, [timeLeft, state, result, act]);
 
+  // keyboard shortcuts: 1-4 alat, P tes nyala
+  useEffect(() => {
+    if (!state || state.status !== "IN_PROGRESS" || result || busy || tutorialOpen || !selected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) return;
+      const key = e.key.toLowerCase();
+      if (key === "p") {
+        e.preventDefault();
+        void act({ type: "POWER_TEST" });
+        return;
+      }
+      const tool = TOOLS.find((t) => t.hint === key);
+      if (!tool) return;
+      e.preventDefault();
+      if (tool.key === "VISUAL") void act({ type: "INSPECT", componentKey: selected.key });
+      else void act({ type: "TEST", componentKey: selected.key, tool: tool.key });
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [state, result, busy, tutorialOpen, selected, act]);
+
   const restart = async () => {
     if (!state) return;
     try {
@@ -221,7 +253,7 @@ export function RepairPlayPage() {
   if (loading) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2.5 text-sm text-muted-foreground">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           Menyiapkan meja kerja…
         </div>
@@ -240,116 +272,237 @@ export function RepairPlayPage() {
     );
   }
 
-  const selected = state.components.find((c) => c.key === selectedKey) ?? null;
-  const done = state.status !== "IN_PROGRESS";
   const progressPct = state.faultsTotal ? Math.round((state.faultsFixed / state.faultsTotal) * 100) : 0;
+  const timePct = state.job.timeLimitSec > 0 ? Math.max(0, Math.min(1, timeLeft / state.job.timeLimitSec)) : 0;
+  const lowTime = timeLeft <= 30;
+  const isLaptop = state.job.deviceType === "LAPTOP";
 
   return (
-    <div className="animate-fade-in">
-      {/* top bar */}
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <Button variant="ghost" size="sm" onClick={() => void exit()}>
-          <ArrowLeft className="h-4 w-4" /> Keluar
+    <div className="animate-fade-in space-y-4">
+      {/* ---------------------------------------------------------- top bar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <Button variant="ghost" size="sm" onClick={() => void exit()} className="-ml-2 text-muted-foreground">
+          <ArrowLeft className="h-4 w-4" /> Keluar bengkel
         </Button>
-        <span className="flex items-center gap-1.5 font-mono-tech text-[10px] font-bold tracking-widest text-emerald-600">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden /> BENGKEL AKTIF
-        </span>
-      </div>
-
-      {/* HUD */}
-      <div className="mb-5 overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 text-white shadow-lift">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 bg-slate-950/50 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <Wrench className="h-4 w-4 text-emerald-300" />
-            <span className="font-mono-tech text-[10px] font-bold tracking-[0.2em] text-emerald-300">TIKET PERBAIKAN</span>
-          </div>
-          <span className="min-w-0 truncate font-display text-sm font-bold">{state.job.title}</span>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Badge className={cn(difficultyColor(state.job.difficulty), "shrink-0")}>{difficultyLabel(state.job.difficulty)}</Badge>
-            <button
-              type="button"
-              onClick={toggleMute}
-              aria-label={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
-              title={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
-              className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setTutorialOpen(true)}
-              aria-label="Buka cara main"
-              title="Cara main"
-              className="rounded-lg p-1.5 text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-            >
-              <HelpCircle className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-3 px-4 py-3 sm:grid-cols-4">
-          <div className="rounded-xl bg-white/5 px-3 py-2">
-            <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              <Heart className="h-3 w-3 text-rose-400" /> Nyawa
-            </div>
-            <div className="mt-1 flex items-center gap-1">
-              {Array.from({ length: state.job.maxHearts }).map((_, i) => (
-                <Heart
-                  key={i}
-                  className={cn("h-4 w-4 transition-all", i < state.hearts ? "fill-rose-500 text-rose-500" : "text-slate-600")}
-                />
-              ))}
-              <span className="ml-1 font-mono-tech text-xs font-bold text-slate-300">{state.hearts}/{state.job.maxHearts}</span>
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/5 px-3 py-2">
-            <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              <Clock className="h-3 w-3 text-sky-400" /> Waktu
-            </div>
-            <div className={cn("mt-0.5 font-mono-tech text-lg font-extrabold", timeLeft <= 30 ? "animate-pulse text-rose-400" : "text-white")}>
-              {formatClock(timeLeft)}
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/5 px-3 py-2">
-            <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              <Flame className="h-3 w-3 text-amber-400" /> Combo
-            </div>
-            <div className={cn("mt-0.5 flex items-center gap-1 font-mono-tech text-lg font-extrabold", state.combo > 0 ? "text-amber-300" : "text-slate-500")}>
-              ×{state.combo}
-              {state.combo >= 2 && <span className="text-[9px] font-bold uppercase tracking-widest text-amber-400">on fire</span>}
-            </div>
-          </div>
-          <div className="rounded-xl bg-white/5 px-3 py-2">
-            <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-widest text-slate-400">
-              <span className="flex items-center gap-1.5"><Wrench className="h-3 w-3 text-emerald-400" /> Perbaikan</span>
-              <span className="font-mono-tech text-emerald-300">{state.faultsFixed}/{state.faultsTotal}</span>
-            </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-slate-700">
-              <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${progressPct}%` }} />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 border-t border-white/10 px-4 py-2 text-[11px] text-slate-300">
-          <Lightbulb className="h-3.5 w-3.5 shrink-0 text-amber-300" />
-          <span className="line-clamp-1">{state.job.symptom}</span>
+        <div className="flex items-center gap-2">
+          <span className="hidden items-center gap-1.5 rounded-full border border-emerald-200/70 bg-emerald-50/80 px-2.5 py-1 font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.16em] text-emerald-700 sm:flex">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" aria-hidden /> Sesi aktif
+          </span>
+          <button
+            type="button"
+            onClick={toggleMute}
+            aria-label={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
+            title={muted ? "Nyalakan efek suara" : "Matikan efek suara"}
+            className="rounded-lg border border-border/70 bg-card p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTutorialOpen(true)}
+            aria-label="Buka cara main"
+            title="Cara main"
+            className="rounded-lg border border-border/70 bg-card p-1.5 text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </button>
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        {/* workbench */}
-        <div className="space-y-5 lg:col-span-2">
-          <Card className="overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
-              <div className="flex items-center gap-2">
-                <CircuitBoard className="h-4 w-4 text-primary" />
-                <span className="font-mono-tech text-xs font-bold uppercase tracking-widest text-primary">Meja Kerja</span>
+      {/* ---------------------------------------------------------- HUD control deck */}
+      <section className="relative overflow-hidden rounded-3xl bg-[#0b1628] text-white shadow-lift">
+        <div className="lab-grid-dark pointer-events-none absolute inset-0 opacity-70" aria-hidden />
+        <div className="pointer-events-none absolute -left-20 -top-24 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl" aria-hidden />
+        <div className="pointer-events-none absolute -right-10 -top-16 h-56 w-56 rounded-full bg-emerald-400/15 blur-3xl" aria-hidden />
+
+        {/* header */}
+        <div className="relative flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/[0.07] ring-1 ring-white/10">
+              {isLaptop ? <Laptop className="h-5 w-5 text-sky-300" /> : <MonitorCog className="h-5 w-5 text-emerald-300" />}
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                <Wrench className="h-3 w-3 text-emerald-300" /> Tiket perbaikan
+                <span className="text-slate-600">·</span>
+                <span className="text-emerald-300">{state.job.skill.code}</span>
+                <span className="text-slate-600">·</span>
+                <span>{deviceLabel(state.job.deviceType)}</span>
               </div>
-              <span className="text-[11px] text-muted-foreground">
-                {state.job.deviceType === "LAPTOP" ? "Laptop" : "PC"} · {state.components.length} komponen · klik bagian untuk memeriksa
+              <h1 className="truncate font-display text-sm font-extrabold leading-tight sm:text-base">{state.job.title}</h1>
+            </div>
+          </div>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Badge className={cn(difficultyColor(state.job.difficulty), "border-0 text-[10px]")}>
+              {difficultyLabel(state.job.difficulty)}
+            </Badge>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 font-mono-tech text-[9px] font-bold text-slate-300">
+              {state.actions} aksi
+            </span>
+          </div>
+        </div>
+
+        {/* metrics */}
+        <div className="relative grid gap-3 px-4 py-4 sm:px-5 lg:grid-cols-[auto_1fr]">
+          {/* timer ring */}
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+            <div className="relative h-[74px] w-[74px] shrink-0">
+              <svg viewBox="0 0 80 80" className="h-full w-full -rotate-90" aria-hidden>
+                <circle cx="40" cy="40" r="32" fill="none" stroke="rgba(148,163,184,0.18)" strokeWidth="6" />
+                <circle
+                  cx="40"
+                  cy="40"
+                  r="32"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeDasharray={201}
+                  strokeDashoffset={201 - 201 * timePct}
+                  className={cn(
+                    "transition-all duration-700 ease-linear",
+                    lowTime ? "text-rose-400" : timePct < 0.5 ? "text-amber-300" : "text-emerald-400"
+                  )}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span
+                  className={cn(
+                    "font-mono-tech text-base font-extrabold tabular-nums leading-none",
+                    lowTime ? "animate-pulse text-rose-400" : "text-white"
+                  )}
+                >
+                  {formatClock(timeLeft)}
+                </span>
+                <span className="mt-1 text-[8px] font-bold uppercase tracking-widest text-slate-500">sisa</span>
+              </div>
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <Clock className="h-3 w-3 text-sky-400" /> Waktu
+              </div>
+              <div className="mt-1 font-mono-tech text-[10px] text-slate-400">
+                {state.elapsedSec > 0 ? `${formatClock(state.elapsedSec)} terpakai` : "baru dimulai"}
+              </div>
+              <div className="mt-1.5 h-1 w-24 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={cn("h-full rounded-full transition-all duration-700", lowTime ? "bg-rose-400" : "bg-sky-400")}
+                  style={{ width: `${Math.max(2, timePct * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            {/* hearts */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Heart className="h-3 w-3 text-rose-400" /> Nyawa
+                </span>
+                <span className="font-mono-tech text-rose-200">
+                  {state.hearts}/{state.job.maxHearts}
+                </span>
+              </div>
+              <div className="mt-2 flex items-center gap-1">
+                {Array.from({ length: state.job.maxHearts }).map((_, i) => (
+                  <Heart
+                    key={i}
+                    className={cn(
+                      "h-4 w-4 transition-all duration-300",
+                      i < state.hearts ? "fill-rose-500 text-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.5)]" : "text-slate-700"
+                    )}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* combo */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Flame className="h-3 w-3 text-amber-400" /> Combo
+                </span>
+                <span className="font-mono-tech text-slate-500">maks ×{state.maxCombo}</span>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5">
+                <span
+                  className={cn(
+                    "font-mono-tech text-xl font-extrabold leading-none",
+                    state.combo > 0 ? "text-amber-300" : "text-slate-600"
+                  )}
+                >
+                  ×{state.combo}
+                </span>
+                {state.combo >= 2 && (
+                  <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-400/15 px-1.5 py-0.5 text-[8px] font-extrabold uppercase tracking-widest text-amber-300">
+                    <Zap className="h-2.5 w-2.5" /> on fire
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-amber-400 to-orange-400 transition-all duration-500"
+                  style={{ width: `${Math.min(100, state.combo * 20)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* repair progress */}
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+              <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <Wrench className="h-3 w-3 text-emerald-400" /> Perbaikan
+                </span>
+                <span className="font-mono-tech text-emerald-300">
+                  {state.faultsFixed}/{state.faultsTotal}
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="font-display text-xl font-extrabold leading-none">{progressPct}</span>
+                <span className="text-[10px] font-bold text-slate-500">%</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all duration-500"
+                  style={{ width: `${Math.max(2, progressPct)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* symptom */}
+        <div className="relative flex items-start gap-2 border-t border-white/10 px-4 py-2.5 text-[11px] leading-relaxed text-slate-300 sm:px-5">
+          <Lightbulb className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-300" />
+          <span>
+            <span className="font-bold uppercase tracking-widest text-slate-500">Gejala: </span>
+            {state.job.symptom}
+          </span>
+        </div>
+      </section>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_370px]">
+        {/* ---------------------------------------------------------- workbench */}
+        <div className="min-w-0 space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-soft">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <CircuitBoard className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-primary">Meja kerja</div>
+                  <div className="text-[10.5px] text-muted-foreground">
+                    {deviceLabel(state.job.deviceType)} · {state.components.length} komponen
+                  </div>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2 py-1 text-[10px] font-semibold text-muted-foreground">
+                <Keyboard className="h-3 w-3" /> 1–4 alat · P tes nyala
               </span>
             </div>
-            <CardContent className="p-4 sm:p-5">
+            <div className="p-3 sm:p-4">
               <DeviceChassis
                 deviceType={state.job.deviceType}
                 components={state.components}
@@ -357,42 +510,54 @@ export function RepairPlayPage() {
                 disabled={done}
                 onSelect={handleSelect}
               />
-
-              <div className="mt-4 rounded-xl border border-dashed border-border/70 bg-muted/30 px-4 py-3 text-[11px] leading-relaxed text-muted-foreground">
-                <strong className="text-foreground">Tips:</strong> klik komponen pada gambar untuk memeriksanya. Inspeksi dulu, lalu
-                gunakan alat yang relevan. Tindakan perbaikan yang salah akan mengurangi 1 nyawa. Tekan{" "}
-                <strong>Tes Nyala</strong> setelah semua masalah diperbaiki.
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* power test */}
-          <Card className="border-emerald-200/70 bg-gradient-to-br from-emerald-50/80 to-teal-50/60">
-            <CardContent className="flex flex-col items-center gap-3 p-5 text-center sm:flex-row sm:justify-between sm:text-left">
-              <div>
-                <div className="font-display text-sm font-bold text-emerald-900">Sudah yakin semua beres?</div>
-                <p className="mt-0.5 text-xs text-emerald-800/80">
-                  Tekan tombol untuk menyalakan {state.job.deviceType === "LAPTOP" ? "laptop" : "PC"}. Kalau masih ada kerusakan, nyawa berkurang.
-                </p>
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-300/60 bg-gradient-to-br from-emerald-50 via-teal-50/70 to-white shadow-soft">
+            <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-emerald-300/30 blur-2xl" aria-hidden />
+            <div className="relative flex flex-col items-center gap-3 p-4 text-center sm:flex-row sm:justify-between sm:text-left">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-[0_8px_18px_-8px_rgba(5,150,105,0.9)]">
+                  <Power className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="font-display text-sm font-extrabold text-emerald-950">Sudah yakin semua beres?</div>
+                  <p className="mt-0.5 max-w-md text-[11.5px] leading-relaxed text-emerald-900/70">
+                    Nyalakan {isLaptop ? "laptop" : "PC"} untuk menguji hasil kerja. Kalau masih ada kerusakan, nyawa berkurang.
+                  </p>
+                </div>
               </div>
               <Button
-                className="shrink-0 bg-emerald-600 hover:bg-emerald-700"
+                className="w-full shrink-0 bg-emerald-600 shadow-none hover:bg-emerald-700 sm:w-auto"
                 onClick={() => void act({ type: "POWER_TEST" })}
                 disabled={busy || done}
               >
                 <Power className="h-4 w-4" /> Tes Nyala
+                <kbd className="ml-1 rounded border border-white/30 bg-white/15 px-1 font-mono-tech text-[9px]">P</kbd>
               </Button>
-            </CardContent>
-          </Card>
-
-          {/* log */}
-          <Card>
-            <div className="border-b border-border/60 px-5 py-3">
-              <span className="font-mono-tech text-xs font-bold uppercase tracking-widest text-muted-foreground">Log Diagnosis</span>
             </div>
-            <CardContent className="p-3">
+          </div>
+
+          {/* console log */}
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-[#0a1424] shadow-soft">
+            <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
+              <div className="flex items-center gap-1.5">
+                <span className="h-2 w-2 rounded-full bg-rose-400/80" />
+                <span className="h-2 w-2 rounded-full bg-amber-300/80" />
+                <span className="h-2 w-2 rounded-full bg-emerald-400/80" />
+                <span className="ml-2 font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-slate-400">
+                  diagnostic.log
+                </span>
+              </div>
+              <span className="font-mono-tech text-[9.5px] text-slate-500">{events.length} entri</span>
+            </div>
+            <div className="max-h-72 overflow-y-auto p-3">
               {events.length === 0 ? (
-                <p className="px-2 py-4 text-center text-xs text-muted-foreground">Belum ada tindakan. Pilih komponen dan mulai inspeksi.</p>
+                <p className="px-1 py-5 text-center font-mono-tech text-[11px] text-slate-500">
+                  <span className="text-emerald-400">$</span> menunggu tindakan
+                  <span className="ml-1 inline-block h-3 w-1.5 animate-pulse bg-emerald-400 align-middle" />
+                </p>
               ) : (
                 <ul className="space-y-1.5">
                   {events.map(({ id, event }) => (
@@ -400,128 +565,171 @@ export function RepairPlayPage() {
                   ))}
                 </ul>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
-        {/* action panel */}
-        <div className="space-y-4">
-          <div id="diagnosis-panel" className="scroll-mt-4 lg:sticky lg:top-4">
-            <Card className="overflow-hidden">
-              <div className="border-b border-border/60 px-4 py-3">
-                <span className="font-mono-tech text-xs font-bold uppercase tracking-widest text-muted-foreground">Panel Diagnosis</span>
+        {/* ---------------------------------------------------------- diagnosis */}
+        <div id="diagnosis-panel" className="scroll-mt-4 xl:sticky xl:top-20 xl:self-start">
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-soft">
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-900 text-emerald-300">
+                  <Gauge className="h-4 w-4" />
+                </span>
+                <div>
+                  <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                    Panel diagnosis
+                  </div>
+                  <div className="text-[10.5px] text-muted-foreground">
+                    {selected ? "Komponen terpilih" : "Belum ada komponen"}
+                  </div>
+                </div>
               </div>
-              {selected ? (
-                <CardContent className="space-y-4 p-4">
-                  <div className="flex items-start gap-3">
-                    <span className={cn(
-                      "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl",
-                      selected.fixed ? "bg-emerald-100 text-emerald-700" : selected.inspected ? "bg-sky-100 text-sky-700" : "bg-muted text-muted-foreground"
-                    )}>
-                      {(() => {
-                        const Icon = componentIcon(selected);
-                        return <Icon className="h-5 w-5" />;
-                      })()}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="font-display text-sm font-bold leading-snug">{selected.name}</div>
-                      <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
-                        <Badge variant="secondary" className="font-mono-tech text-[9px]">{selected.category}</Badge>
-                        {selected.fixed ? (
-                          <Badge variant="success" className="text-[9px]">Diperbaiki</Badge>
-                        ) : selected.inspected ? (
-                          <Badge variant="info" className="text-[9px]">Sudah diinspeksi</Badge>
-                        ) : (
-                          <Badge variant="secondary" className="text-[9px]">Belum dicek</Badge>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-xl bg-muted/50 p-3 text-xs leading-relaxed">
-                    <div className="mb-1 font-bold uppercase tracking-widest text-muted-foreground">Hasil Inspeksi</div>
-                    {selected.clue ? (
-                      <p className="text-foreground/85">{selected.clue}</p>
-                    ) : (
-                      <p className="text-muted-foreground">Belum diinspeksi. Gunakan alat di bawah untuk mulai mendiagnosis.</p>
-                    )}
-                  </div>
-
-                  {Object.keys(selected.readings).length > 0 && (
-                    <div className="space-y-1.5">
-                      <div className="font-bold uppercase tracking-widest text-muted-foreground text-[10px]">Hasil Pengukuran</div>
-                      {Object.entries(selected.readings).map(([tool, text]) => (
-                        <div key={tool} className="rounded-lg border border-border/60 bg-card px-2.5 py-2">
-                          <div className="font-mono-tech text-[9px] font-bold uppercase tracking-widest text-primary">{tool.replace("_", " ")}</div>
-                          <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">{text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div>
-                    <div className="mb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Alat Diagnosis</div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      <ToolButton
-                        label="Inspeksi"
-                        icon={Eye}
-                        tested={selected.inspected}
-                        disabled={busy || done}
-                        onClick={() => void act({ type: "INSPECT", componentKey: selected.key })}
-                      />
-                      {TOOLS.filter((t) => t.key !== "VISUAL").map((t) => (
-                        <ToolButton
-                          key={t.key}
-                          label={t.short}
-                          icon={t.icon}
-                          tested={selected.testedTools.includes(t.key)}
-                          disabled={busy || done}
-                          title={t.desc}
-                          onClick={() => void act({ type: "TEST", componentKey: selected.key, tool: t.key })}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Tindakan Perbaikan</span>
-                      <span className="text-[9px] font-semibold text-rose-600">salah = −1 nyawa</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {FIXES.map((f) => (
-                        <button
-                          key={f.key}
-                          type="button"
-                          title={f.desc}
-                          disabled={busy || done || selected.fixed}
-                          onClick={() => void act({ type: "FIX", componentKey: selected.key, fixType: f.key })}
-                          className={cn(
-                            "flex flex-col items-start gap-0.5 rounded-xl border border-border/70 bg-card px-2.5 py-2 text-left transition-all",
-                            "hover:border-primary/50 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
-                          )}
-                        >
-                          <span className="flex items-center gap-1.5 text-[11px] font-bold">
-                            <f.icon className="h-3.5 w-3.5 text-primary" /> {f.label}
-                          </span>
-                          <span className="text-[9px] leading-tight text-muted-foreground">{f.desc}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {selected.replacementName && (
-                    <p className="text-[10px] text-muted-foreground">
-                      Spare part tersedia: <span className="font-semibold text-foreground">{selected.replacementName}</span>
-                    </p>
-                  )}
-                </CardContent>
-              ) : (
-                <CardContent className="p-6 text-center text-xs text-muted-foreground">
-                  Pilih komponen di meja kerja untuk mulai mendiagnosis.
-                </CardContent>
+              {selected && (
+                <Badge
+                  variant={selected.fixed ? "success" : selected.inspected ? "info" : "secondary"}
+                  className="text-[9px]"
+                >
+                  {selected.fixed ? "Beres" : selected.inspected ? "Diinspeksi" : "Belum dicek"}
+                </Badge>
               )}
-            </Card>
+            </div>
+
+            {selected ? (
+              <div className="space-y-3.5 p-4">
+                <div className="flex items-start gap-3">
+                  <span
+                    className={cn(
+                      "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ring-1",
+                      selected.fixed
+                        ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                        : selected.inspected
+                          ? "bg-sky-50 text-sky-700 ring-sky-200"
+                          : "bg-muted text-muted-foreground ring-border"
+                    )}
+                  >
+                    {(() => {
+                      const Icon = componentIcon(selected);
+                      return <Icon className="h-5 w-5" />;
+                    })()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-display text-sm font-extrabold leading-snug">{selected.name}</div>
+                    <div className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge variant="secondary" className="font-mono-tech text-[9px]">
+                        {selected.category}
+                      </Badge>
+                      <span className="text-[9.5px] text-muted-foreground">{selected.slot}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* clue */}
+                <div
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-[11.5px] leading-relaxed",
+                    selected.clue
+                      ? "border-sky-200/70 bg-sky-50/70 text-sky-950"
+                      : "border-dashed border-border bg-muted/30 text-muted-foreground"
+                  )}
+                >
+                  <div className="mb-1 flex items-center gap-1.5 text-[9px] font-bold uppercase tracking-[0.16em]">
+                    <Eye className="h-3 w-3" /> Hasil inspeksi
+                  </div>
+                  {selected.clue ?? "Belum diinspeksi. Tekan Inspeksi (1) untuk melihat kondisi fisik."}
+                </div>
+
+                {/* readings */}
+                {Object.keys(selected.readings).length > 0 && (
+                  <div className="space-y-1.5">
+                    <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Hasil pengukuran
+                    </div>
+                    {Object.entries(selected.readings).map(([tool, text]) => (
+                      <div key={tool} className="rounded-lg border border-border/60 bg-muted/25 px-2.5 py-2">
+                        <div className="font-mono-tech text-[9px] font-bold uppercase tracking-[0.14em] text-primary">
+                          {tool.replace("_", " ")}
+                        </div>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-foreground/80">{text}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* tools */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Alat diagnosis
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[9px] text-muted-foreground">
+                      <Keyboard className="h-2.5 w-2.5" /> 1–4
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {TOOLS.map((t) => (
+                      <ToolButton
+                        key={t.key}
+                        label={t.short}
+                        icon={t.icon}
+                        hint={t.hint}
+                        tested={t.key === "VISUAL" ? selected.inspected : selected.testedTools.includes(t.key)}
+                        disabled={busy || done}
+                        title={t.desc}
+                        onClick={() =>
+                          t.key === "VISUAL"
+                            ? void act({ type: "INSPECT", componentKey: selected.key })
+                            : void act({ type: "TEST", componentKey: selected.key, tool: t.key })
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* fixes */}
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <span className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                      Tindakan perbaikan
+                    </span>
+                    <span className="text-[9px] font-bold text-rose-600">salah = −1 nyawa</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {FIXES.map((f) => (
+                      <button
+                        key={f.key}
+                        type="button"
+                        title={f.desc}
+                        disabled={busy || done || selected.fixed}
+                        onClick={() => void act({ type: "FIX", componentKey: selected.key, fixType: f.key })}
+                        className={cn(
+                          "group flex flex-col items-start gap-0.5 rounded-xl border border-border/70 bg-card px-2.5 py-2 text-left transition-all",
+                          "hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5 hover:shadow-sm",
+                          "disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                        )}
+                      >
+                        <span className="flex items-center gap-1.5 text-[11px] font-bold">
+                          <f.icon className="h-3.5 w-3.5 text-primary" /> {f.label}
+                        </span>
+                        <span className="text-[9px] leading-tight text-muted-foreground">{f.desc}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {selected.replacementName && (
+                  <p className="rounded-lg bg-muted/50 px-2.5 py-1.5 text-[10px] text-muted-foreground">
+                    Spare part tersedia: <span className="font-bold text-foreground">{selected.replacementName}</span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="px-5 py-10 text-center">
+                <Wrench className="mx-auto h-7 w-7 text-muted-foreground/40" />
+                <p className="mt-2 text-xs text-muted-foreground">Pilih komponen di meja kerja untuk mulai mendiagnosis.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -539,6 +747,8 @@ export function RepairPlayPage() {
           result={result}
           jobTitle={state.job.title}
           deviceType={state.job.deviceType}
+          faultsFixed={state.faultsFixed}
+          faultsTotal={state.faultsTotal}
           onRestart={() => void restart()}
           onExit={() => navigate("/repair")}
         />
@@ -551,6 +761,7 @@ export function RepairPlayPage() {
 function ToolButton({
   label,
   icon: Icon,
+  hint,
   tested,
   disabled,
   title,
@@ -558,6 +769,7 @@ function ToolButton({
 }: {
   label: string;
   icon: LucideIcon;
+  hint: string;
   tested: boolean;
   disabled: boolean;
   title?: string;
@@ -570,15 +782,22 @@ function ToolButton({
       disabled={disabled}
       title={title}
       className={cn(
-        "flex items-center justify-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors",
+        "group relative flex items-center gap-1.5 rounded-lg border px-2 py-2 text-[11px] font-semibold transition-colors",
         tested
           ? "border-sky-200 bg-sky-50 text-sky-700"
           : "border-border/70 bg-card text-foreground/80 hover:border-primary/40 hover:text-primary",
         disabled && "cursor-not-allowed opacity-50"
       )}
     >
-      <Icon className="h-3.5 w-3.5" /> {label}
-      {tested && <CheckCircle2 className="h-3 w-3" />}
+      <Icon className="h-3.5 w-3.5" />
+      <span className="truncate">{label}</span>
+      {tested ? (
+        <CheckCircle2 className="ml-auto h-3 w-3 shrink-0" />
+      ) : (
+        <kbd className="ml-auto hidden shrink-0 rounded border border-border/70 bg-muted px-1 font-mono-tech text-[8.5px] font-bold text-muted-foreground sm:block">
+          {hint}
+        </kbd>
+      )}
     </button>
   );
 }
@@ -586,17 +805,17 @@ function ToolButton({
 function LogRow({ event }: { event: RepairEvent }) {
   const meta =
     event.kind === "FIX" || event.kind === "WIN"
-      ? { icon: CheckCircle2, cls: "text-emerald-600", bg: "bg-emerald-50/70 border-emerald-200/60" }
+      ? { icon: CheckCircle2, cls: "text-emerald-400", line: "border-emerald-400/20 bg-emerald-400/[0.06]" }
       : event.kind === "HEART_LOST" || event.kind === "LOSE" || event.kind === "TIMEOUT"
-        ? { icon: XCircle, cls: "text-rose-600", bg: "bg-rose-50/70 border-rose-200/60" }
-        : { icon: Lightbulb, cls: "text-sky-600", bg: "bg-sky-50/60 border-sky-200/50" };
+        ? { icon: XCircle, cls: "text-rose-400", line: "border-rose-400/20 bg-rose-400/[0.06]" }
+        : { icon: Lightbulb, cls: "text-sky-300", line: "border-sky-400/15 bg-sky-400/[0.05]" };
   const Icon = meta.icon;
   return (
-    <li className={cn("flex items-start gap-2 rounded-lg border px-2.5 py-2", meta.bg)}>
+    <li className={cn("flex items-start gap-2 rounded-lg border px-2.5 py-1.5", meta.line)}>
       <Icon className={cn("mt-0.5 h-3.5 w-3.5 shrink-0", meta.cls)} />
       <div className="min-w-0">
-        <div className="text-[11px] font-bold leading-snug">{event.title}</div>
-        <div className="text-[10px] leading-relaxed text-muted-foreground">{event.message}</div>
+        <div className="font-mono-tech text-[10.5px] font-bold leading-snug text-slate-100">{event.title}</div>
+        <div className="font-mono-tech text-[10px] leading-relaxed text-slate-400">{event.message}</div>
       </div>
     </li>
   );
@@ -606,49 +825,96 @@ function ResultOverlay({
   result,
   jobTitle,
   deviceType,
+  faultsFixed,
+  faultsTotal,
   onRestart,
   onExit,
 }: {
   result: RepairResult;
   jobTitle: string;
   deviceType: RepairDeviceType;
+  faultsFixed: number;
+  faultsTotal: number;
   onRestart: () => void;
   onExit: () => void;
 }) {
   const success = result.success;
-  const device = deviceType === "LAPTOP" ? "Laptop" : "PC";
+  const device = deviceLabel(deviceType);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
-      <div className="animate-fade-in-up w-full max-w-md overflow-hidden rounded-3xl bg-card shadow-lift">
-        <div className={cn("px-6 py-7 text-center", success ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10" : "bg-gradient-to-br from-rose-500/15 to-orange-500/10")}>
-          <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-900 shadow-lift ring-4 ring-white/40">
-            <span className="font-display text-4xl font-extrabold text-white">{result.grade}</span>
-          </div>
-          <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.28em] text-slate-500">{success ? "Misi Selesai" : "Misi Gagal"}</div>
-          <h1 className="font-display text-2xl font-extrabold">
-            {success ? `${device} Kembali Normal! 🎉` : "Perbaikan Belum Berhasil"}
-          </h1>
-          <p className="mt-1 text-xs text-muted-foreground">{jobTitle}</p>
-          <div className="mt-4 flex items-center justify-center gap-1.5">
-            {[1, 2, 3].map((i) => (
-              <Star key={i} className={cn("h-7 w-7", i <= result.stars ? "fill-amber-400 text-amber-400" : "text-muted")} />
-            ))}
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm">
+      <div className="animate-fade-in-up max-h-[92vh] w-full max-w-md overflow-y-auto rounded-3xl bg-card shadow-lift">
+        {/* header */}
+        <div className="relative overflow-hidden bg-[#0b1628] px-6 pb-6 pt-7 text-center text-white">
+          <div className="lab-grid-dark pointer-events-none absolute inset-0 opacity-70" aria-hidden />
+          <div
+            className={cn(
+              "pointer-events-none absolute left-1/2 top-0 h-48 w-48 -translate-x-1/2 rounded-full blur-3xl",
+              success ? "bg-emerald-400/25" : "bg-rose-400/20"
+            )}
+            aria-hidden
+          />
+          <div className="relative">
+            <div
+              className={cn(
+                "mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-white/[0.06] ring-1",
+                success ? "ring-emerald-400/40" : "ring-rose-400/40"
+              )}
+            >
+              <span className="font-display text-4xl font-extrabold">{result.grade}</span>
+            </div>
+            <div
+              className={cn(
+                "mt-3 font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.28em]",
+                success ? "text-emerald-300" : "text-rose-300"
+              )}
+            >
+              {success ? "Misi selesai" : "Misi gagal"}
+            </div>
+            <h1 className="mt-1 font-display text-xl font-extrabold leading-snug">
+              {success ? `${device} kembali normal! 🎉` : "Perbaikan belum berhasil"}
+            </h1>
+            <p className="mt-1 truncate text-[11px] text-slate-400">{jobTitle}</p>
+            <div className="mt-3 flex items-center justify-center gap-1.5">
+              {[1, 2, 3].map((i) => (
+                <Star
+                  key={i}
+                  className={cn(
+                    "h-7 w-7 transition-transform",
+                    i <= result.stars ? "scale-105 fill-amber-400 text-amber-400" : "text-slate-700"
+                  )}
+                />
+              ))}
+            </div>
           </div>
         </div>
 
-        <div className="space-y-2.5 px-6 py-5">
-          <div className="flex items-center justify-between">
-            <span className="text-sm text-muted-foreground">Skor</span>
-            <span className="font-display text-3xl font-extrabold text-primary">{result.score}</span>
+        {/* score */}
+        <div className="space-y-3 px-6 py-5">
+          <div className="flex items-end justify-between">
+            <div>
+              <div className="text-[9.5px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Skor akhir</div>
+              <div className="font-display text-4xl font-extrabold leading-none text-primary">{result.score}</div>
+            </div>
+            <span className="rounded-full bg-muted px-2.5 py-1 font-mono-tech text-[10px] font-bold text-muted-foreground">
+              {formatClock(result.timeSec)} · {faultsFixed}/{faultsTotal} fault · {result.stars}★
+            </span>
           </div>
-          <div className="h-px bg-border" />
-          <MetricRow label="Akurasi tindakan" value={`${Math.round(result.accuracy * 100)}%`} />
-          <MetricRow label="Bonus kecepatan" value={`${Math.round(result.speed * 100)}%`} />
-          <MetricRow label="Bonus combo" value={`+${result.comboBonus}`} />
-          <MetricRow label="Bonus nyawa" value={`+${result.heartBonus}`} />
-          <MetricRow label="Waktu" value={formatClock(result.timeSec)} />
-          <div className="mt-1 flex items-center justify-between rounded-xl bg-primary/5 px-3 py-2.5">
-            <span className="flex items-center gap-1.5 text-sm font-semibold"><Trophy className="h-4 w-4 text-primary" /> XP diperoleh</span>
+
+          <div className="space-y-2">
+            <ScoreBar label="Akurasi tindakan" value={result.accuracy} tone="emerald" suffix={`${Math.round(result.accuracy * 100)}%`} />
+            <ScoreBar label="Bonus kecepatan" value={result.speed} tone="sky" suffix={`${Math.round(result.speed * 100)}%`} />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <BonusChip label="Bonus combo" value={`+${result.comboBonus}`} tone="amber" />
+            <BonusChip label="Bonus nyawa" value={`+${result.heartBonus}`} tone="rose" />
+          </div>
+
+          <div className="flex items-center justify-between rounded-xl border border-primary/15 bg-primary/5 px-3 py-2.5">
+            <span className="flex items-center gap-1.5 text-sm font-semibold">
+              <Trophy className="h-4 w-4 text-primary" /> XP diperoleh
+            </span>
             <span className="font-display text-lg font-extrabold text-primary">
               {result.xpGained > 0 ? `+${result.xpGained} XP` : "Sudah tercatat"}
             </span>
@@ -668,11 +934,41 @@ function ResultOverlay({
   );
 }
 
-function MetricRow({ label, value }: { label: string; value: string }) {
+function ScoreBar({
+  label,
+  value,
+  tone,
+  suffix,
+}: {
+  label: string;
+  value: number;
+  tone: "emerald" | "sky";
+  suffix: string;
+}) {
+  const pct = Math.max(0, Math.min(1, value));
   return (
-    <div className="flex items-center justify-between text-sm">
-      <span className="text-muted-foreground">{label}</span>
-      <span className="font-semibold">{value}</span>
+    <div>
+      <div className="flex items-center justify-between text-[10.5px]">
+        <span className="text-muted-foreground">{label}</span>
+        <span className="font-mono-tech font-bold text-foreground/80">{suffix}</span>
+      </div>
+      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn("h-full rounded-full", tone === "emerald" ? "bg-emerald-500" : "bg-sky-500")}
+          style={{ width: `${Math.max(2, pct * 100)}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BonusChip({ label, value, tone }: { label: string; value: string; tone: "amber" | "rose" }) {
+  return (
+    <div className="rounded-xl border border-border/70 bg-muted/30 px-2.5 py-2">
+      <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-muted-foreground">{label}</div>
+      <div className={cn("mt-0.5 font-display text-base font-extrabold", tone === "amber" ? "text-amber-600" : "text-rose-600")}>
+        {value}
+      </div>
     </div>
   );
 }
