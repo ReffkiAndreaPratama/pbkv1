@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Check, Eye, EyeOff, Info, Lock, Mail, UserRound, UserPlus } from "lucide-react";
+import { AlertCircle, Check, Eye, EyeOff, Lock, Mail, ShieldCheck, UserPlus, UserRound } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
-import { AuthLayout, AuthHeading } from "@/components/layout/auth-layout";
+import { AuthLayout, AuthHeading, AuthField } from "@/components/layout/auth-layout";
 
 export function RegisterPage() {
   const { login } = useAuth();
@@ -48,122 +48,143 @@ export function RegisterPage() {
 
   return (
     <AuthLayout
-      heading={<AuthHeading icon={<UserPlus size={22} />} subtitle="Buat akun pelajar untuk menyimpan progress dan profil kemampuanmu." title="Daftar ke TechTutor AI" />}
+      heading={
+        <AuthHeading
+          icon={<UserPlus size={20} />}
+          subtitle="Buat akun pelajar untuk menyimpan progres dan profil kemampuanmu."
+          title="Daftar ke TechTutor AI"
+        />
+      }
     >
-      <form className="auth-form" onSubmit={submit}>
+      <form className="space-y-3.5" onSubmit={submit}>
         {error && (
-          <div className="auth-error" role="alert">
-            <Info size={16} /> {error}
+          <div
+            className="flex items-start gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3 py-2.5 text-[11.5px] font-medium text-rose-200"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" /> {error}
           </div>
         )}
-        <label htmlFor="register-name">
-          Nama Lengkap
-          <div className="input-wrap">
-            <UserRound size={18} />
-            <input
-              autoComplete="name"
-              autoFocus
-              id="register-name"
-              minLength={3}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Masukkan nama lengkap"
-              required
-              value={name}
-            />
-          </div>
-        </label>
-        <label htmlFor="register-email">
-          Email
-          <div className="input-wrap">
-            <Mail size={18} />
-            <input
-              autoComplete="email"
-              id="register-email"
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@email.com"
-              required
-              type="email"
-              value={email}
-            />
-          </div>
-        </label>
-        <label htmlFor="register-password">
-          Password
-          <div className="input-wrap has-action">
-            <Lock size={18} />
-            <input
-              autoComplete="new-password"
-              id="register-password"
-              minLength={8}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimal 8 karakter"
-              required
-              type={showPassword ? "text" : "password"}
-              value={password}
-            />
+
+        <AuthField
+          autoComplete="name"
+          autoFocus
+          icon={<UserRound className="h-4 w-4" />}
+          id="register-name"
+          label="Nama lengkap"
+          minLength={3}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Masukkan nama lengkap"
+          required
+          value={name}
+        />
+
+        <AuthField
+          autoComplete="email"
+          icon={<Mail className="h-4 w-4" />}
+          id="register-email"
+          label="Email"
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="nama@email.com"
+          required
+          type="email"
+          value={email}
+        />
+
+        <AuthField
+          action={
             <button
               aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
-              className="input-action"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
               onClick={() => setShowPassword((v) => !v)}
               type="button"
             >
-              {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
-          </div>
-        </label>
-        <label htmlFor="register-confirm">
-          Ulangi Password
-          <div className="input-wrap has-action">
-            <Lock size={18} />
-            <input
-              autoComplete="new-password"
-              id="register-confirm"
-              minLength={8}
-              onChange={(e) => setConfirm(e.target.value)}
-              placeholder="Ulangi password"
-              required
-              type={showConfirm ? "text" : "password"}
-              value={confirm}
-            />
+          }
+          autoComplete="new-password"
+          icon={<Lock className="h-4 w-4" />}
+          id="register-password"
+          label="Password"
+          minLength={8}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Minimal 8 karakter"
+          required
+          type={showPassword ? "text" : "password"}
+          value={password}
+        />
+
+        <AuthField
+          action={
             <button
               aria-label={showConfirm ? "Sembunyikan password" : "Tampilkan password"}
-              className="input-action"
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-500 transition-colors hover:bg-white/5 hover:text-slate-300"
               onClick={() => setShowConfirm((v) => !v)}
               type="button"
             >
-              {showConfirm ? <EyeOff size={17} /> : <Eye size={17} />}
+              {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
-          </div>
-        </label>
-        <div className="auth-checks">
-          <span className={cn("field-status", passwordValid ? "ok" : "muted")}>
-            {passwordValid ? <Check size={13} /> : <Info size={13} />}
-            {passwordValid ? "Password memenuhi syarat" : "Minimal 8 karakter dan mengandung angka"}
+          }
+          autoComplete="new-password"
+          icon={<ShieldCheck className="h-4 w-4" />}
+          id="register-confirm"
+          label="Ulangi password"
+          minLength={8}
+          onChange={(e) => setConfirm(e.target.value)}
+          placeholder="Ulangi password"
+          required
+          type={showConfirm ? "text" : "password"}
+          value={confirm}
+        />
+
+        <div className="space-y-1.5">
+          <span
+            className={cn(
+              "flex items-center gap-1.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.1em]",
+              passwordValid ? "text-emerald-300" : "text-slate-600"
+            )}
+          >
+            {passwordValid ? <Check className="h-3 w-3" /> : <span className="h-3 w-3 rounded-full border border-current" />}
+            {passwordValid ? "Password memenuhi syarat" : "Minimal 8 karakter + angka"}
           </span>
           {confirm.length > 0 && (
-            <span className={cn("field-status", passwordsMatch ? "ok" : "bad")}>
-              {passwordsMatch ? <Check size={13} /> : <Info size={13} />}
+            <span
+              className={cn(
+                "flex items-center gap-1.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.1em]",
+                passwordsMatch ? "text-emerald-300" : "text-rose-300"
+              )}
+            >
+              {passwordsMatch ? <Check className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
               {passwordsMatch ? "Konfirmasi password cocok" : "Konfirmasi password belum cocok"}
             </span>
           )}
         </div>
-        <button className="btn btn-primary full-button auth-submit" disabled={loading} type="submit">
+
+        <button
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-emerald-500 text-[12.5px] font-bold text-slate-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={loading}
+          type="submit"
+        >
           {loading ? (
             <>
-              <span className="btn-spinner" /> Membuat akun…
+              <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950" /> Membuat akun…
             </>
           ) : (
             <>
-              Daftar & Mulai <UserPlus size={18} />
+              Daftar & mulai <UserPlus className="h-4 w-4" />
             </>
           )}
         </button>
-        <div className="auth-divider">
-          <span>atau</span>
+
+        <div className="flex items-center gap-3 pt-1">
+          <span className="h-px flex-1 bg-white/[0.08]" />
+          <span className="font-mono-tech text-[8.5px] uppercase tracking-[0.16em] text-slate-600">atau</span>
+          <span className="h-px flex-1 bg-white/[0.08]" />
         </div>
-        <p className="register-text">
+
+        <p className="text-center text-[11.5px] text-slate-400">
           Sudah punya akun?{" "}
-          <button onClick={() => navigate("/login")} type="button">
+          <button className="font-bold text-emerald-300 transition-colors hover:text-emerald-200" onClick={() => navigate("/login")} type="button">
             Masuk
           </button>
         </p>
