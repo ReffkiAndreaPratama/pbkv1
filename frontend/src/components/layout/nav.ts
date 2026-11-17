@@ -14,6 +14,7 @@ import {
   Activity,
   Trophy,
   Medal,
+  GraduationCap,
   type LucideIcon,
 } from "lucide-react";
 
@@ -30,7 +31,8 @@ export const navItems: NavItem[] = [
   { title: "Latihan", path: "/practice", icon: ListChecks },
   { title: "Simulasi", path: "/cases", icon: MonitorCog },
   { title: "Bengkel", path: "/repair", icon: Wrench },
-  { title: "Evaluasi", path: "/evaluation", icon: Target },
+  { title: "Ujian", path: "/exam", icon: GraduationCap },
+  { title: "Rapor", path: "/evaluation", icon: Target },
   { title: "Pencapaian", path: "/achievements", icon: Trophy },
   { title: "Peringkat", path: "/leaderboard", icon: Medal },
   { title: "Profil", path: "/profile", icon: UserRound },

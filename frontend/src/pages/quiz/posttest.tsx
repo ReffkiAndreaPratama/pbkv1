@@ -1,12 +1,9 @@
-import { QuizRunner } from "./runner";
+import { Navigate } from "react-router-dom";
 
+/**
+ * Posttest lama kini menjadi Ujian Akhir formal di /exam.
+ * Route ini dipertahankan agar tautan lama tetap bekerja.
+ */
 export function PosttestPage() {
-  return (
-    <QuizRunner
-      title="Posttest"
-      subtitle="Uji pemahaman akhir setelah menyelesaikan materi & simulasi. Minimal lulus: 70."
-      config="POSTTEST"
-      onBackHref="/progress"
-    />
-  );
+  return <Navigate to="/exam" replace />;
 }

@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn, formatTime } from "@/lib/utils";
-import type { SimNode, SimSubmitResponse, SimResult, CaseOption } from "@/lib/types";
+import type { SimNode, SimSubmitResponse, SimResult, CaseOption, SimDebriefStep } from "@/lib/types";
 
 interface AttemptLoad {
   status: string;
@@ -37,11 +37,12 @@ export function SimulationPage() {
   const [submitting, setSubmitting] = useState(false);
   const [hinting, setHinting] = useState(false);
   const [hint, setHint] = useState<{ level: number; text: string; fullAnswer: boolean } | null>(null);
-  const [result, setResult] = useState<{ success: boolean; score: SimResult; xpGained: number } | null>(null);
+  const [result, setResult] = useState<{ success: boolean; score: SimResult; xpGained: number; debrief?: SimDebriefStep[] } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [hintCount, setHintCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [moves, setMoves] = useState(0);
+  const [timeline, setTimeline] = useState<SimDebriefStep[]>([]);
   const [caseTitle, setCaseTitle] = useState("Simulasi Kasus");
 
   useLeaveGuard(!loading && result === null);
@@ -82,16 +83,37 @@ export function SimulationPage() {
     setFeedback(null);
     setHint(null);
     try {
+      const chosen = node.options.find((o) => o.optionId === optionId);
       const res = await api.post<SimSubmitResponse>(`/api/simulation/${attemptId}/submit`, { optionId });
+      const wasCorrect = !!res.wasCorrect;
+      const step: SimDebriefStep = {
+        step: timeline.length + 1,
+        nodeKey: node.nodeKey,
+        nodeText: node.text,
+        nodeType: node.type,
+        optionLabel: chosen?.label ?? "",
+        wasCorrect,
+        hintLevel: hintCount,
+        at: new Date().toISOString(),
+      };
       setMoves((m) => m + 1);
+      if (!wasCorrect) setWrongCount((c) => c + 1);
+
       if (!res.terminal && res.nextNode) {
+        setTimeline((prev) => [...prev, step]);
         setNode(res.nextNode);
         setSignals(res.signalState ?? {});
-        setFeedback(res.feedbackText ? { text: res.feedbackText, correct: !!node.options?.find((o) => o.optionId === optionId)?.isCorrect } : null);
+        setFeedback(res.feedbackText ? { text: res.feedbackText, correct: wasCorrect } : null);
       } else {
         // terminal
-        setResult({ success: !!res.success, score: res.score!, xpGained: res.xpGained ?? 0 });
-        setFeedback(res.feedbackText ? { text: res.feedbackText, correct: !!res.success } : null);
+        setTimeline((prev) => [...prev, step]);
+        setResult({
+          success: !!res.success,
+          score: res.score!,
+          xpGained: res.xpGained ?? 0,
+          debrief: res.debrief ?? [...timeline, step],
+        });
+        setFeedback(res.feedbackText ? { text: res.feedbackText, correct: wasCorrect } : null);
       }
     } catch (e: any) {
       toast.error(e.message || "Pilihan tidak valid.");
@@ -127,6 +149,7 @@ export function SimulationPage() {
     setMoves(0);
     setWrongCount(0);
     setHintCount(0);
+    setTimeline([]);
     setLoading(true);
     void load();
   };
@@ -141,6 +164,14 @@ export function SimulationPage() {
     );
 
   if (!node) return null;
+
+  const signalEntries = Object.entries(signals);
+  const riskySignals = signalEntries.filter(
+    ([, v]) => v === false || /fail|error|dead|burnt|short|missing|bad|off|rusak/i.test(String(v))
+  ).length;
+  const risk = signalEntries.length ? Math.round((riskySignals / signalEntries.length) * 100) : 0;
+  const riskLabel = !signalEntries.length ? "BELUM ADA DATA" : risk >= 60 ? "KRITIS" : risk >= 30 ? "WASPADA" : "STABIL";
+  const riskTone = !signalEntries.length ? "text-slate-300" : risk >= 60 ? "text-rose-300" : risk >= 30 ? "text-amber-300" : "text-emerald-300";
 
   // Terminal result screen
   if (result) return <ResultScreen result={result} moves={moves} elapsed={elapsed} onRestart={restart} onExit={() => navigate("/cases")} />;
@@ -167,10 +198,14 @@ export function SimulationPage() {
             <span className="truncate font-mono-tech text-sm font-bold">{caseTitle}</span>
             <span className="shrink-0 font-mono-tech text-[10px] text-slate-400">{node.type === "ACTION" ? "AKSI" : "DIAGNOSIS"}</span>
           </div>
-          <div className="grid grid-cols-4 divide-x divide-white/10 text-center">
+          <div className="grid grid-cols-5 divide-x divide-white/10 text-center">
             <HudCell label="Langkah" value={String(moves)} />
             <HudCell label="Time" value={formatTime(elapsed)} />
-            <HudCell label="Sinyal" value={String(Object.keys(signals).length)} />
+            <HudCell label="Sinyal" value={String(signalEntries.length)} />
+            <div className="px-2 py-2.5">
+              <div className="text-[9px] font-bold uppercase tracking-widest text-slate-500">Risiko</div>
+              <div className={cn("mt-0.5 font-mono-tech text-sm font-extrabold", riskTone)}>{risk}%</div>
+            </div>
             <HudCell label="Hint" value={`${hintCount}/4`} />
           </div>
         </div>
@@ -224,7 +259,12 @@ export function SimulationPage() {
             <div className={cn("animate-fade-in flex items-start gap-2 rounded-2xl border p-4 text-sm",
               feedback.correct ? "border-emerald-300/40 bg-emerald-50 text-emerald-800" : "border-rose-300/40 bg-rose-50 text-rose-800")}>
               {feedback.correct ? <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" /> : <CircleX className="mt-0.5 h-4 w-4 shrink-0" />}
-              <span>{feedback.text}</span>
+              <div>
+                <div className="text-[9.5px] font-bold uppercase tracking-[0.14em] opacity-70">
+                  Konsekuensi · {feedback.correct ? "sinyal membaik" : "sinyal memburuk"}
+                </div>
+                <span>{feedback.text}</span>
+              </div>
             </div>
           )}
         </div>
@@ -234,6 +274,20 @@ export function SimulationPage() {
           <Card>
             <CardContent className="p-4">
               <div className="mb-3 text-[11px] font-bold uppercase tracking-widest text-muted-foreground">Status Sistem</div>
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-[9.5px] font-semibold text-muted-foreground">
+                  <span>Risiko sistem</span>
+                  <span className={cn("font-mono-tech font-bold", risk >= 60 ? "text-rose-600" : risk >= 30 ? "text-amber-600" : "text-emerald-600")}>
+                    {riskLabel}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className={cn("h-full rounded-full transition-all", risk >= 60 ? "bg-rose-500" : risk >= 30 ? "bg-amber-400" : "bg-emerald-500")}
+                    style={{ width: `${signalEntries.length ? Math.max(3, risk) : 3}%` }}
+                  />
+                </div>
+              </div>
               {Object.keys(signals).length === 0 ? (
                 <p className="text-xs text-muted-foreground">Belum ada sinyal terpantau.</p>
               ) : (
@@ -293,18 +347,26 @@ function HudCell({ label, value }: { label: string; value: string }) {
 }
 
 function OptionCard({ option, disabled, onPick }: { option: CaseOption; disabled: boolean; onPick: () => void }) {
+  const locked = option.available === false;
   return (
     <button
-      disabled={disabled}
+      disabled={disabled || locked}
       onClick={onPick}
-      className="group flex w-full items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 text-left transition-all hover:border-primary/50 hover:shadow-soft disabled:opacity-60"
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-2xl border border-border/70 bg-card p-4 text-left transition-all hover:border-primary/50 hover:shadow-soft disabled:opacity-60",
+        locked && "cursor-not-allowed border-dashed bg-muted/30 hover:border-border/70 hover:shadow-none"
+      )}
     >
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-secondary font-mono-tech text-sm font-bold text-foreground/70 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
         {option.label.slice(0, 1).toUpperCase()}
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium leading-snug group-hover:text-primary">{option.label}</div>
-        {option.feedbackText && <div className="mt-0.5 line-clamp-1 text-[11px] text-muted-foreground">Hmm… reaksi sistem akan terlihat</div>}
+        {locked && (
+          <div className="mt-0.5 text-[10.5px] font-semibold text-muted-foreground">
+            Terkunci — sinyal perangkat belum mendukung langkah ini.
+          </div>
+        )}
       </div>
     </button>
   );
@@ -319,7 +381,7 @@ const GRADE_META: Record<string, { label: string; head: string }> = {
 };
 
 function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
-  result: { success: boolean; score: SimResult; xpGained: number };
+  result: { success: boolean; score: SimResult; xpGained: number; debrief?: SimDebriefStep[] };
   moves: number;
   elapsed: number;
   onRestart: () => void;
@@ -327,8 +389,9 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
 }) {
   const s = result.score;
   const grade = GRADE_META[s.grade] ?? GRADE_META.D;
+  const debrief = result.debrief ?? [];
   return (
-    <div className="animate-fade-in-up mx-auto max-w-lg pt-10">
+    <div className="animate-fade-in-up mx-auto max-w-2xl pt-6">
       <Card className="overflow-hidden">
         <div className={cn("px-6 py-8 text-center", result.success ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10" : "bg-gradient-to-br from-rose-500/15 to-orange-500/10")}>
           <div className="mx-auto mb-3 flex h-20 w-20 items-center justify-center rounded-2xl bg-slate-900 shadow-lift ring-4 ring-white/40">
@@ -365,6 +428,49 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
             <span className="font-display text-lg font-extrabold text-primary">+{result.xpGained} XP</span>
           </div>
         </div>
+
+        {debrief.length > 0 && (
+          <div className="border-t border-border px-6 py-5">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Debrief misi
+                </div>
+                <h2 className="mt-0.5 font-display text-base font-extrabold">Timeline langkahmu</h2>
+              </div>
+              <span className="rounded-full bg-muted px-2 py-0.5 font-mono-tech text-[9px] font-bold text-muted-foreground">
+                {debrief.length} langkah
+              </span>
+            </div>
+
+            <ol className="mt-3 space-y-2">
+              {debrief.map((step) => (
+                <li key={step.step} className="flex gap-2.5 rounded-xl border border-border/60 bg-muted/20 p-2.5">
+                  <span
+                    className={cn(
+                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg font-mono-tech text-[9px] font-bold",
+                      step.wasCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+                    )}
+                  >
+                    {step.step}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                      {step.nodeText}
+                    </div>
+                    <div className="text-[11.5px] font-semibold leading-snug text-slate-700">{step.optionLabel}</div>
+                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[9.5px] text-muted-foreground">
+                      <span className={step.wasCorrect ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>
+                        {step.wasCorrect ? "Langkah tepat" : "Langkah berisiko"}
+                      </span>
+                      {step.hintLevel > 0 && <span>· hint level {step.hintLevel}</span>}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </div>
+        )}
 
         <div className="flex gap-2 px-6 pb-6">
           <Button className="flex-1" onClick={onRestart}>

@@ -217,7 +217,7 @@ export function AdaptivePage() {
                   ? `/cases/${item.refId}`
                   : item.type === "QUIZ"
                   ? `/quiz/adaptive?skill=${item.skillId}`
-                  : "/quiz/posttest";
+                  : "/exam";
               return (
                 <Link className="flow-item" key={i} to={href}>
                   <span className="flow-index">{i + 1}</span>

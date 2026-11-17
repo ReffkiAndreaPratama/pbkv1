@@ -12,7 +12,8 @@ import { InstallBanner } from "@/components/layout/install-banner";
 const ROUTE_TITLES: { match: RegExp; title: string }[] = [
   { match: /^\/dashboard$/, title: "Dashboard" },
   { match: /^\/practice$/, title: "Latihan" },
-  { match: /^\/evaluation$/, title: "Evaluasi" },
+  { match: /^\/exam$/, title: "Ujian Akhir" },
+  { match: /^\/evaluation$/, title: "Rapor" },
   { match: /^\/profile$/, title: "Profil Saya" },
   { match: /^\/adaptive$/, title: "Kuis Adaptif" },
   { match: /^\/ai$/, title: "AI Tutor" },

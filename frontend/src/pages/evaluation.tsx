@@ -46,7 +46,7 @@ export function EvaluationPage() {
   const bars = [
     { label: "Pretest", value: pretestScore, tone: "from-sky-400 to-blue-500", text: "text-sky-300" },
     { label: "Rata-rata", value: completed.length ? avg : null, tone: "from-amber-300 to-orange-400", text: "text-amber-300" },
-    { label: "Posttest", value: posttestScore, tone: "from-emerald-400 to-teal-400", text: "text-emerald-300" },
+    { label: "Ujian", value: posttestScore, tone: "from-emerald-400 to-teal-400", text: "text-emerald-300" },
   ];
 
   return (
@@ -65,7 +65,7 @@ export function EvaluationPage() {
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300 opacity-75" />
                 <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300" />
               </span>
-              Evaluasi hasil belajar · rapor personal
+              Rapor resmi · capaian belajar
             </div>
 
             <h1 className="mt-4 max-w-xl font-display text-3xl font-extrabold leading-[1.1] tracking-tight sm:text-4xl">
@@ -74,17 +74,17 @@ export function EvaluationPage() {
               <span className="text-gradient">kamu berkembang.</span>
             </h1>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-300">
-              Bandingkan hasil pretest dan posttest, lihat skill yang menguat, dan temukan langkah berikutnya. Angka
-              bukan segalanya — tapi arahnya jelas.
+              Bandingkan hasil pretest dengan ujian akhir, lihat skill yang menguat, dan temukan langkah berikutnya.
+              Latihan tidak dinilai di sini — hanya capaian resmi yang masuk rapor.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
               <Link
-                to={p.posttestDone ? "/progress" : "/quiz/posttest"}
+                to={p.posttestDone ? "/progress" : "/exam"}
                 className="inline-flex h-9 items-center gap-2 rounded-xl bg-emerald-500 px-4 text-xs font-bold text-slate-950 transition-colors hover:bg-emerald-400"
               >
                 {p.posttestDone ? <TrendingUp className="h-4 w-4" /> : <Trophy className="h-4 w-4" />}
-                {p.posttestDone ? "Lihat rapor lengkap" : "Kerjakan posttest"}
+                {p.posttestDone ? "Lihat rapor lengkap" : "Kerjakan ujian akhir"}
               </Link>
               <Link
                 to="/repair"
@@ -170,7 +170,7 @@ export function EvaluationPage() {
       {/* ---------------------------------------------------------- stat strip */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <QuickStat icon={Target} label="Pretest" value={pretestScore !== null ? `${Math.round(pretestScore)}` : "—"} hint="titik awal" tone="blue" />
-        <QuickStat icon={Trophy} label="Posttest" value={posttestScore !== null ? `${Math.round(posttestScore)}` : "—"} hint="uji akhir" tone="amber" />
+        <QuickStat icon={Trophy} label="Ujian" value={posttestScore !== null ? `${Math.round(posttestScore)}` : "—"} hint="KKM 70" tone="amber" />
         <QuickStat icon={ListChecks} label="Rata-rata" value={completed.length ? `${avg}` : "—"} hint={`${completed.length} kuis selesai`} tone="violet" />
         <QuickStat
           icon={TrendingUp}
@@ -189,7 +189,7 @@ export function EvaluationPage() {
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Perbandingan hasil
               </div>
-              <h2 className="mt-0.5 font-display text-base font-extrabold">Pretest → posttest</h2>
+              <h2 className="mt-0.5 font-display text-base font-extrabold">Pretest → ujian akhir</h2>
             </div>
             <span
               className={cn(
@@ -232,11 +232,11 @@ export function EvaluationPage() {
             <p className="text-[11px] leading-relaxed text-muted-foreground">
               {growth !== null
                 ? growth > 0
-                  ? `Skormu naik ${growth} poin dari pretest ke posttest. Pertahankan pola belajar yang sama.`
+                  ? `Skormu naik ${growth} poin dari pretest ke ujian akhir. Pertahankan pola belajar yang sama.`
                   : growth === 0
-                    ? "Skor pretest dan posttest sama. Fokuskan latihan pada skill dengan penguasaan terendah."
-                    : `Skor turun ${Math.abs(growth)} poin. Tinjau kembali materi dan kerjakan kuis adaptif per skill.`
-                : "Kerjakan pretest dan posttest untuk melihat pertumbuhan skor secara utuh."}
+                    ? "Skor pretest dan ujian akhir sama. Fokuskan latihan pada skill dengan penguasaan terendah."
+                    : `Skor turun ${Math.abs(growth)} poin. Tinjau kembali materi dan kerjakan latihan adaptif per skill.`
+                : "Kerjakan pretest dan ujian akhir untuk melihat pertumbuhan skor secara utuh."}
             </p>
           </div>
         </section>
@@ -314,10 +314,10 @@ export function EvaluationPage() {
 
           {!p.posttestDone ? (
             <Link
-              to="/quiz/posttest"
+              to="/exam"
               className="mt-4 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-xs font-bold text-white transition-colors hover:bg-slate-800"
             >
-              Kerjakan posttest <ArrowRight className="h-3.5 w-3.5" />
+              Kerjakan ujian akhir <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           ) : (
             <Link
@@ -335,7 +335,7 @@ export function EvaluationPage() {
               <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
                 Riwayat
               </div>
-              <h2 className="mt-0.5 font-display text-base font-extrabold">Semua hasil kuis</h2>
+              <h2 className="mt-0.5 font-display text-base font-extrabold">Semua hasil latihan &amp; ujian</h2>
             </div>
             <span className="rounded-full bg-muted px-2 py-1 text-[9.5px] font-bold text-muted-foreground">
               {summary.recentQuizzes.length} sesi
@@ -345,8 +345,8 @@ export function EvaluationPage() {
           {summary.recentQuizzes.length === 0 ? (
             <EmptyState
               icon={<ListChecks className="h-6 w-6" />}
-              title="Belum ada hasil kuis"
-              description="Kerjakan pretest untuk memulai evaluasi kemampuanmu."
+              title="Belum ada hasil"
+              description="Kerjakan pretest atau ujian akhir untuk mulai mengisi rapor."
             />
           ) : (
             <div className="mt-4 overflow-hidden rounded-xl border border-border/60">

@@ -59,10 +59,13 @@ export interface CaseOption {
   optionId: string;
   label: string;
   targetNodeKey: string | null;
-  isCorrect: boolean;
-  condition: { signal?: string; equals?: string | boolean | number } | null;
-  effect: { setSignal?: Record<string, string | boolean | number>; forceFail?: boolean } | null;
-  feedbackText: string | null;
+  /** Hanya tersedia pada data pratinjau/admin, tidak dikirim saat bermain. */
+  isCorrect?: boolean;
+  condition?: { signal?: string; equals?: string | boolean | number } | null;
+  effect?: { setSignal?: Record<string, string | boolean | number>; forceFail?: boolean } | null;
+  feedbackText?: string | null;
+  /** Dihitung server dari sinyal saat ini; opsi tidak tersedia tetap ditampilkan terkunci. */
+  available?: boolean;
 }
 
 export interface CaseNode {
@@ -103,14 +106,40 @@ export interface SimResult {
   stars: number;
 }
 
+export interface SimDebriefStep {
+  step: number;
+  nodeKey: string;
+  nodeText: string;
+  nodeType: NodeType;
+  optionLabel: string;
+  wasCorrect: boolean;
+  hintLevel: number;
+  at: string;
+}
+
+export interface SimDebrief {
+  caseTitle: string;
+  skill: { code: string; name: string };
+  status: string;
+  success: boolean | null;
+  score: number | null;
+  accuracy: number | null;
+  timeSec: number | null;
+  hintsUsed: number;
+  signalState: Record<string, string | boolean | number>;
+  timeline: SimDebriefStep[];
+}
+
 export interface SimSubmitResponse {
   terminal: boolean;
   success?: boolean;
+  wasCorrect?: boolean;
   feedbackText: string | null;
   score?: SimResult;
   xpGained?: number;
   nextNode?: SimNode | null;
   signalState?: Record<string, string | boolean | number>;
+  debrief?: SimDebriefStep[];
 }
 
 export interface QuizQuestion {
@@ -137,6 +166,74 @@ export interface SubmitRes {
   totalCount: number;
   passed?: boolean;
   review?: QuizReviewItem[];
+}
+
+// --- Latihan (practice) ---
+export interface PracticeAnswerRes {
+  isCorrect: boolean;
+  correctKeys: string[];
+  explanation: string;
+  difficulty: Difficulty;
+}
+
+export interface PracticeResult {
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  review: QuizReviewItem[];
+}
+
+// --- Ujian (exam) ---
+export interface ExamSkillRow {
+  code: string;
+  name: string;
+  total: number;
+  correct: number;
+}
+
+export interface ExamResult {
+  sessionId: string;
+  score: number;
+  correctCount: number;
+  totalCount: number;
+  passed: boolean;
+  passScore: number;
+  timedOut: boolean;
+  perSkill: ExamSkillRow[];
+  review: QuizReviewItem[];
+}
+
+export interface ExamSavedAnswer {
+  questionId: string;
+  selectedKeys: string[];
+}
+
+export interface ExamInfo {
+  attemptsUsed: number;
+  maxAttempts: number;
+  remainingAttempts: number;
+  passScore: number;
+  durationSec: number;
+  questionCount: number;
+  bestScore: number | null;
+  activeSessionId: string | null;
+  activeRemainingSec: number;
+}
+
+export interface ExamStateRes {
+  completed: boolean;
+  sessionId?: string;
+  startedAt?: string;
+  deadlineAt?: string;
+  durationSec?: number;
+  passScore?: number;
+  maxAttempts?: number;
+  questionCount?: number;
+  remainingSec?: number;
+  questions?: QuizQuestion[];
+  savedAnswers?: ExamSavedAnswer[];
+  attemptsUsed?: number;
+  result?: ExamResult;
 }
 
 export interface QuizOption {

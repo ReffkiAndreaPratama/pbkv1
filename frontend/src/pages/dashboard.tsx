@@ -38,7 +38,7 @@ const pathHref = (item: PathItem) =>
       ? `/cases/${item.refId}`
       : item.type === "QUIZ"
         ? `/quiz/adaptive?skill=${item.skillId}`
-        : "/quiz/posttest";
+        : "/exam";
 
 export function DashboardPage() {
   const { user } = useAuth();

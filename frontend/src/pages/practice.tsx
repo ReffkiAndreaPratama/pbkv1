@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   ClipboardList,
   Clock,
+  GraduationCap,
   Laptop,
   MonitorCog,
   Sparkles,
@@ -21,6 +22,16 @@ import { getJalur } from "@/lib/learning-path";
 import { PageLoader } from "@/components/ui/feedback";
 import { cn, formatDate, tierColor, tierLabel } from "@/lib/utils";
 import type { MasteryRow, QuizSessionRow, RepairJobListItem, SummaryData } from "@/lib/types";
+
+const COMPARE_ROWS = [
+  { aspect: "Format", sim: "Pohon keputusan bercabang", practice: "Kuis adaptif 10 soal", exam: "Ujian 15 soal" },
+  { aspect: "Umpan balik", sim: "Debrief setelah misi", practice: "Instan tiap jawaban", exam: "Setelah dikumpulkan" },
+  { aspect: "Timer", sim: "Tanpa timer", practice: "Tanpa timer", exam: "20 menit" },
+  { aspect: "Petunjuk", sim: "Ada, mengurangi skor", practice: "Ada, menyingkirkan opsi", exam: "Tidak ada" },
+  { aspect: "Kelulusan", sim: "Skor misi", practice: "Tidak ada (latihan)", exam: "KKM 70" },
+  { aspect: "Percobaan", sim: "Bebas", practice: "Tak terbatas", exam: "Maks 5" },
+];
+
 
 export function PracticePage() {
   const [summary, setSummary] = useState<SummaryData | null>(null);
@@ -78,8 +89,8 @@ export function PracticePage() {
               <span className="text-gradient">bukan asal klik.</span>
             </h1>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-slate-300">
-              Pilih format yang sesuai kebutuhanmu hari ini: ukur kemampuan, latih skill terlemah, atau langsung
-              turun tangan membongkar perangkat di bengkel.
+              Simulasi untuk praktik langsung, latihan untuk mencoba tanpa risiko, dan ujian untuk penilaian
+              resmi. Tiga pengalaman berbeda — bukan kuis yang sama dengan label baru.
             </p>
 
             <div className="mt-6 flex flex-wrap items-center gap-2.5">
@@ -87,7 +98,7 @@ export function PracticePage() {
                 to={focus ? `/quiz/adaptive?skill=${focus.skillId}` : "/quiz/adaptive"}
                 className="inline-flex h-9 items-center gap-2 rounded-xl bg-emerald-500 px-4 text-xs font-bold text-slate-950 transition-colors hover:bg-emerald-400"
               >
-                <Target className="h-4 w-4" /> Mulai kuis adaptif
+                <Target className="h-4 w-4" /> Mulai latihan adaptif
               </Link>
               <Link
                 to="/repair"
@@ -141,11 +152,11 @@ export function PracticePage() {
                   ok={profile.pretestDone}
                 />
                 <TerminalRow
-                  label="Posttest"
+                  label="Ujian"
                   value={profile.posttestDone ? `${profile.posttestScore ?? 0}/100` : "BELUM"}
                   ok={profile.posttestDone}
                 />
-                <TerminalRow label="Kuis dikerjakan" value={`${recent.length} sesi`} ok={recent.length > 0} />
+                <TerminalRow label="Sesi latihan" value={`${recent.length} sesi`} ok={recent.length > 0} />
                 <TerminalRow
                   label="Rata-rata skor"
                   value={recent.length ? `${avgScore}/100` : "—"}
@@ -175,7 +186,7 @@ export function PracticePage() {
 
       {/* ---------------------------------------------------------- stat strip */}
       <section className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <QuickStat icon={ClipboardList} label="Kuis" value={`${recent.length}`} hint="sesi terakhir" tone="blue" />
+        <QuickStat icon={ClipboardList} label="Sesi" value={`${recent.length}`} hint="latihan & ujian" tone="blue" />
         <QuickStat
           icon={Trophy}
           label="Rata-rata"
@@ -187,55 +198,122 @@ export function PracticePage() {
         <QuickStat icon={Sparkles} label="Mastery" value={`${overall}%`} hint="rata-rata skill" tone="emerald" />
       </section>
 
-      {/* ---------------------------------------------------------- practice modes */}
+      {/* ---------------------------------------------------------- three core modes */}
       <section>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-              Modul latihan
+              Tiga mode, tiga tujuan
             </div>
-            <h2 className="mt-0.5 font-display text-xl font-extrabold">Pilih cara kamu berlatih</h2>
+            <h2 className="mt-0.5 font-display text-xl font-extrabold">Simulasi, latihan, dan ujian itu beda</h2>
           </div>
-          <span className="text-[11px] font-semibold text-muted-foreground">4 modul tersedia</span>
+          <span className="text-[11px] font-semibold text-muted-foreground">Pilih sesuai kebutuhanmu hari ini</span>
         </div>
 
-        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-3 lg:grid-cols-3">
+          <CoreModeCard
+            icon={MonitorCog}
+            accent="violet"
+            kicker="Praktik langsung"
+            title="Simulasi Kasus"
+            description="Turun tangan mendiagnosis perangkat lewat pohon keputusan. Setiap tindakan punya konsekuensi nyata."
+            bullets={[
+              "Alur bercabang, bukan pilihan ganda",
+              "Sinyal perangkat berubah tiap tindakan",
+              "Debrief & timeline setelah selesai",
+            ]}
+            href="/cases"
+            cta="Masuk simulasi"
+            badge="Hands-on"
+          />
+          <CoreModeCard
+            icon={Brain}
+            accent="emerald"
+            kicker="Latihan aman"
+            title="Latihan Adaptif"
+            description="Coba tanpa risiko. Jawaban diperiksa satu per satu dan pembahasan langsung muncul."
+            bullets={[
+              "Umpan balik instan tiap soal",
+              "Petunjuk menyingkirkan opsi salah",
+              "Tanpa timer & tanpa batas percobaan",
+            ]}
+            href={focus ? `/quiz/adaptive?skill=${focus.skillId}` : "/quiz/adaptive"}
+            cta="Mulai latihan"
+            badge="Low-stakes"
+          />
+          <CoreModeCard
+            icon={GraduationCap}
+            accent="amber"
+            kicker="Penilaian formal"
+            title="Ujian Akhir"
+            description="Uji kesiapanmu dalam kondisi resmi: waktu terbatas, tanpa bantuan, dan ambang kelulusan jelas."
+            bullets={[
+              "15 soal · 20 menit · KKM 70",
+              "Tanpa petunjuk & tanpa koreksi dini",
+              "Maks 5 percobaan, hasil final",
+            ]}
+            href="/exam"
+            cta="Masuk ujian"
+            badge="Formal"
+          />
+        </div>
+
+        <div className="mt-3 overflow-x-auto rounded-2xl border border-border/70 bg-card shadow-soft">
+          <table className="w-full min-w-[560px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-border/60 bg-muted/20">
+                <th className="px-4 py-2.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+                  Aspek
+                </th>
+                <th className="px-3 py-2.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.16em] text-violet-600">
+                  Simulasi
+                </th>
+                <th className="px-3 py-2.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.16em] text-emerald-600">
+                  Latihan
+                </th>
+                <th className="px-3 py-2.5 font-mono-tech text-[9px] font-bold uppercase tracking-[0.16em] text-amber-600">
+                  Ujian
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {COMPARE_ROWS.map((row) => (
+                <tr key={row.aspect} className="border-b border-border/40 last:border-0">
+                  <td className="px-4 py-2 text-[11px] font-semibold text-slate-700">{row.aspect}</td>
+                  <td className="px-3 py-2 text-[11px] text-muted-foreground">{row.sim}</td>
+                  <td className="px-3 py-2 text-[11px] text-muted-foreground">{row.practice}</td>
+                  <td className="px-3 py-2 text-[11px] font-medium text-slate-700">{row.exam}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      {/* ---------------------------------------------------------- support modules */}
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              Modul pendukung
+            </div>
+            <h2 className="mt-0.5 font-display text-xl font-extrabold">Ukur titik awal &amp; asah praktik</h2>
+          </div>
+          <span className="text-[11px] font-semibold text-muted-foreground">2 modul tersedia</span>
+        </div>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <ModeCard
             icon={ClipboardList}
             tone="blue"
             badge={profile.pretestDone ? "Selesai" : "Wajib"}
             badgeTone={profile.pretestDone ? "emerald" : "amber"}
             title="Pretest Kemampuan"
-            description="Ukur kemampuan awal sebelum jalur belajar adaptif disusun."
+            description="Ukur kemampuan awal sebelum jalur belajar adaptif disusun. Tidak ada lulus/gagal."
             progressLabel={profile.pretestDone ? "Sudah dikerjakan" : "Belum dikerjakan"}
             progress={profile.pretestDone ? 100 : 0}
             href="/quiz/pretest"
             cta={profile.pretestDone ? "Ulangi pretest" : "Mulai pretest"}
-          />
-          <ModeCard
-            icon={Brain}
-            tone="violet"
-            badge="Adaptif"
-            badgeTone="violet"
-            title="Kuis Adaptif"
-            description="Soal menyesuaikan penguasaan skill yang sedang kamu latih."
-            progressLabel="Penguasaan saat ini"
-            progress={overall}
-            href={focus ? `/quiz/adaptive?skill=${focus.skillId}` : "/quiz/adaptive"}
-            cta="Mulai kuis"
-          />
-          <ModeCard
-            icon={Trophy}
-            tone="amber"
-            badge={profile.posttestDone ? "Lulus" : "Belum"}
-            badgeTone={profile.posttestDone ? "emerald" : "slate"}
-            title="Posttest"
-            description="Uji pemahaman akhir setelah materi & simulasi. Minimal lulus 70."
-            progressLabel={profile.posttestDone ? "Skor akhir" : "Belum dikerjakan"}
-            progress={profile.posttestScore ?? 0}
-            progressSuffix="/100"
-            href="/quiz/posttest"
-            cta="Mulai posttest"
           />
           <ModeCard
             icon={Wrench}
@@ -243,7 +321,7 @@ export function PracticePage() {
             badge="Praktik"
             badgeTone="emerald"
             title="Bengkel PC & Laptop"
-            description="Inspeksi komponen, ukur, ganti bagian rusak, lalu tes nyala."
+            description="Inspeksi komponen, ukur, ganti bagian rusak, lalu tes nyala pada perangkat nyata."
             progressLabel={`${pcJobs} misi PC · ${laptopJobs} laptop`}
             progress={100}
             href="/repair"
@@ -397,6 +475,89 @@ export function PracticePage() {
   );
 }
 
+function CoreModeCard({
+  icon: Icon,
+  accent,
+  kicker,
+  title,
+  description,
+  bullets,
+  href,
+  cta,
+  badge,
+}: {
+  icon: LucideIcon;
+  accent: "violet" | "emerald" | "amber";
+  kicker: string;
+  title: string;
+  description: string;
+  bullets: string[];
+  href: string;
+  cta: string;
+  badge: string;
+}) {
+  const tone = {
+    violet: {
+      bar: "bg-violet-500",
+      icon: "bg-violet-50 text-violet-700 ring-violet-100",
+      badge: "bg-violet-50 text-violet-700",
+      cta: "bg-violet-600 text-white hover:bg-violet-500",
+      dot: "bg-violet-500",
+    },
+    emerald: {
+      bar: "bg-emerald-500",
+      icon: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+      badge: "bg-emerald-50 text-emerald-700",
+      cta: "bg-emerald-600 text-white hover:bg-emerald-500",
+      dot: "bg-emerald-500",
+    },
+    amber: {
+      bar: "bg-amber-400",
+      icon: "bg-amber-50 text-amber-700 ring-amber-100",
+      badge: "bg-amber-50 text-amber-700",
+      cta: "bg-amber-500 text-slate-950 hover:bg-amber-400",
+      dot: "bg-amber-400",
+    },
+  }[accent];
+
+  return (
+    <article className="card-hover relative flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card p-4 pt-5 shadow-soft">
+      <span className={cn("absolute inset-x-0 top-0 h-1", tone.bar)} aria-hidden />
+      <div className="flex items-start justify-between gap-2">
+        <span className={cn("flex h-10 w-10 items-center justify-center rounded-xl ring-1", tone.icon)}>
+          <Icon className="h-5 w-5" />
+        </span>
+        <span className={cn("rounded-full px-2 py-0.5 text-[9px] font-bold", tone.badge)}>{badge}</span>
+      </div>
+
+      <div className="mt-3 font-mono-tech text-[9px] font-bold uppercase tracking-[0.16em] text-muted-foreground">
+        {kicker}
+      </div>
+      <h3 className="mt-0.5 font-display text-base font-extrabold leading-snug">{title}</h3>
+      <p className="mt-1 text-[11.5px] leading-relaxed text-muted-foreground">{description}</p>
+
+      <ul className="mt-3 flex-1 space-y-1.5">
+        {bullets.map((b) => (
+          <li key={b} className="flex items-start gap-1.5 text-[10.5px] leading-snug text-slate-600">
+            <span className={cn("mt-1.5 h-1 w-1 shrink-0 rounded-full", tone.dot)} />
+            <span>{b}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Link
+        to={href}
+        className={cn(
+          "mt-4 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl text-xs font-bold transition-colors",
+          tone.cta
+        )}
+      >
+        {cta} <ArrowRight className="h-3.5 w-3.5" />
+      </Link>
+    </article>
+  );
+}
+
 function ModeCard({
   icon: Icon,
   tone,
@@ -481,7 +642,7 @@ function ModeCard({
 }
 
 function HistoryRow({ q }: { q: QuizSessionRow }) {
-  const label: Record<string, string> = { PRETEST: "Pretest", POSTTEST: "Posttest", ADAPTIVE: "Kuis Adaptif" };
+  const label: Record<string, string> = { PRETEST: "Pretest", POSTTEST: "Ujian Akhir", ADAPTIVE: "Latihan Adaptif" };
   const pass = q.score !== null && q.score >= 70;
   return (
     <div className="flex items-center gap-2.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-2">

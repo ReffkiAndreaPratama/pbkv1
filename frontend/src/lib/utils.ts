@@ -88,8 +88,8 @@ export function difficultyColor(d: string): string {
 export function quizTypeLabel(t: string): string {
   const map: Record<string, string> = {
     PRETEST: "Pretest",
-    POSTTEST: "Posttest",
-    ADAPTIVE: "Kuis Adaptif",
+    POSTTEST: "Ujian Akhir",
+    ADAPTIVE: "Latihan Adaptif",
   };
   return map[t] ?? t;
 }

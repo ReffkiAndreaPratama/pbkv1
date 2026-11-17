@@ -352,10 +352,10 @@ export function ProfilePage() {
                   done={p.pretestDone}
                 />
                 <QuizCard
-                  kicker="Posttest"
+                  kicker="Ujian Akhir"
                   title={p.posttestDone ? `Skor ${Math.round(p.posttestScore ?? 0)}/100` : "Belum dikerjakan"}
-                  desc="Uji akhir setelah materi & simulasi."
-                  to="/quiz/posttest"
+                  desc="Ujian formal: 20 menit, tanpa hint, KKM 70."
+                  to="/exam"
                   done={p.posttestDone}
                 />
               </div>

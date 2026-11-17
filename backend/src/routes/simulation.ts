@@ -9,7 +9,11 @@ import { awardSimSuccess, awardSimFail, checkAchievements } from "../lib/gamific
 const router = Router();
 router.use(requireAuth);
 
-async function currentNodeWithOptions(attemptId: string, caseId: string) {
+async function currentNodeWithOptions(
+  attemptId: string,
+  caseId: string,
+  signals: Record<string, string | boolean | number>
+) {
   const lastStep = await prisma.simulationStep.findFirst({ where: { attemptId }, orderBy: { at: "desc" } });
   let node;
   if (!lastStep) {
@@ -29,18 +33,51 @@ async function currentNodeWithOptions(attemptId: string, caseId: string) {
       type: node.type,
       text: node.text,
       detail: node.detail,
-      options: options.map((o) => ({
-        optionId: o.id,
-        label: o.label,
-        targetNodeKey: o.nextNode?.nodeKey ?? null,
-        isCorrect: o.isCorrect,
-        condition: o.condition ?? null,
-        effect: o.effect ?? null,
-        feedbackText: o.feedbackText ?? null,
-      })),
+      options: options.map(playOption(signals)),
     },
-    signals: {} as Record<string, string | boolean | number>,
+    signals,
   };
+}
+
+/**
+ * Opsi yang dikirim saat bermain tidak membocorkan jawaban.
+ * Hanya label, tujuan, dan ketersediaan (dihitung dari sinyal) yang terlihat.
+ */
+const playOption = (signals: Record<string, string | boolean | number>) => (o: {
+  id: string;
+  label: string;
+  nextNode: { nodeKey: string } | null;
+  condition: unknown;
+}) => {
+  const cond = o.condition as { signal?: string; equals?: string | boolean | number } | null;
+  const available = !cond?.signal || signals[cond.signal] === cond.equals;
+  return {
+    optionId: o.id,
+    label: o.label,
+    targetNodeKey: o.nextNode?.nodeKey ?? null,
+    available,
+  };
+};
+
+async function buildDebrief(attemptId: string, caseId: string) {
+  const [steps, nodes] = await Promise.all([
+    prisma.simulationStep.findMany({ where: { attemptId }, orderBy: { at: "asc" } }),
+    prisma.caseNode.findMany({
+      where: { caseId },
+      select: { nodeKey: true, text: true, type: true },
+    }),
+  ]);
+  const byKey = new Map(nodes.map((n) => [n.nodeKey, n]));
+  return steps.map((s, i) => ({
+    step: i + 1,
+    nodeKey: s.nodeKey,
+    nodeText: byKey.get(s.nodeKey)?.text ?? s.nodeKey,
+    nodeType: byKey.get(s.nodeKey)?.type ?? "ACTION",
+    optionLabel: s.optionLabel,
+    wasCorrect: s.wasCorrect,
+    hintLevel: s.hintLevel,
+    at: s.at,
+  }));
 }
 
 router.get("/:attemptId", async (req: any, res) => {
@@ -59,20 +96,46 @@ router.get("/:attemptId", async (req: any, res) => {
       wrongMoves: attempt.wrongMoves,
       timeSec: attempt.timeSec,
       hintsUsed: attempt.hintsUsed,
+      signalState: attempt.signalState ?? {},
+      debrief: await buildDebrief(attempt.id, attempt.caseId),
     });
     return;
   }
 
-  const state = await currentNodeWithOptions(attempt.id, attempt.caseId);
+  const signals = (attempt.signalState ?? {}) as Record<string, string | boolean | number>;
+  const state = await currentNodeWithOptions(attempt.id, attempt.caseId, signals);
   if (!state) { res.status(500).json({ error: "Could not determine current node." }); return; }
-  const { node, signals } = state;
+  const { node } = state;
 
   res.json({
     status: "IN_PROGRESS",
     caseTitle: attempt.case.title,
     skill: attempt.case.skill,
     currentNode: node,
-    signalState: attempt.signalState ?? signals,
+    signalState: signals,
+  });
+});
+
+router.get("/:attemptId/debrief", async (req: any, res) => {
+  const attempt = await prisma.simulationAttempt.findUnique({
+    where: { id: req.params.attemptId },
+    include: { case: { include: { skill: true } } },
+  });
+  if (!attempt || attempt.userId !== req.user!.id) {
+    res.status(404).json({ error: "Attempt not found." });
+    return;
+  }
+  res.json({
+    caseTitle: attempt.case.title,
+    skill: attempt.case.skill,
+    status: attempt.status,
+    success: attempt.success,
+    score: attempt.score,
+    accuracy: attempt.accuracy,
+    timeSec: attempt.timeSec,
+    hintsUsed: attempt.hintsUsed,
+    signalState: attempt.signalState ?? {},
+    timeline: await buildDebrief(attempt.id, attempt.caseId),
   });
 });
 
@@ -124,17 +187,10 @@ router.post("/:attemptId/submit", async (req: any, res) => {
         type: nextN.type,
         text: nextN.text,
         detail: nextN.detail,
-        options: nextOptions.map((o) => ({
-          optionId: o.id,
-          label: o.label,
-          targetNodeKey: o.nextNode?.nodeKey ?? null,
-          isCorrect: o.isCorrect,
-          condition: o.condition ?? null,
-          effect: o.effect ?? null,
-          feedbackText: o.feedbackText ?? null,
-        })),
+        options: nextOptions.map(playOption(signals)),
       },
       signalState: signals,
+      wasCorrect: option.isCorrect,
       feedbackText: option.feedbackText ?? null,
     });
   }
@@ -174,9 +230,12 @@ router.post("/:attemptId/submit", async (req: any, res) => {
   res.json({
     terminal: true,
     success,
+    wasCorrect: option.isCorrect,
     feedbackText: option.feedbackText ?? null,
     score: result,
     xpGained: success ? 30 + Math.round(result.score / 10) : 5,
+    signalState: signals,
+    debrief: await buildDebrief(attemptId, attempt.caseId),
     nextNode: option.nextNode ? { nodeKey: option.nextNode.nodeKey, type: option.nextNode.type, text: option.nextNode.text } : null,
   });
 });

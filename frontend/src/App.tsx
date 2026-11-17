@@ -12,6 +12,7 @@ import { PathSelectionPage } from "@/pages/path-selection";
 import { DashboardPage } from "@/pages/dashboard";
 import { PracticePage } from "@/pages/practice";
 import { EvaluationPage } from "@/pages/evaluation";
+import { ExamPage } from "@/pages/exam";
 import { ProfilePage } from "@/pages/profile";
 import { AdaptivePage } from "@/pages/adaptive";
 import { AiTutorPage } from "@/pages/ai-tutor";
@@ -106,6 +107,7 @@ export default function App() {
           >
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/practice" element={<PracticePage />} />
+            <Route path="/exam" element={<ExamPage />} />
             <Route path="/evaluation" element={<EvaluationPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/adaptive" element={<AdaptivePage />} />
