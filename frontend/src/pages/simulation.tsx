@@ -15,12 +15,14 @@ import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { cn, formatTime } from "@/lib/utils";
-import type { SimNode, SimSubmitResponse, SimResult, CaseOption, SimDebriefStep } from "@/lib/types";
+import { cn, difficultyColor, difficultyLabel, formatTime } from "@/lib/utils";
+import type { SimNode, SimSubmitResponse, SimResult, CaseOption, SimDebriefStep, SimDebrief } from "@/lib/types";
 
 interface AttemptLoad {
   status: string;
+  caseId?: string;
   caseTitle?: string;
+  elapsedSec?: number;
   currentNode: SimNode;
   signalState: Record<string, string | boolean | number>;
 }
@@ -38,44 +40,54 @@ export function SimulationPage() {
   const [hinting, setHinting] = useState(false);
   const [hint, setHint] = useState<{ level: number; text: string; fullAnswer: boolean } | null>(null);
   const [result, setResult] = useState<{ success: boolean; score: SimResult; xpGained: number; debrief?: SimDebriefStep[] } | null>(null);
+  const [completed, setCompleted] = useState<SimDebrief | null>(null);
   const [elapsed, setElapsed] = useState(0);
   const [hintCount, setHintCount] = useState(0);
   const [wrongCount, setWrongCount] = useState(0);
   const [moves, setMoves] = useState(0);
   const [timeline, setTimeline] = useState<SimDebriefStep[]>([]);
   const [caseTitle, setCaseTitle] = useState("Simulasi Kasus");
+  const [caseId, setCaseId] = useState<string | null>(null);
 
-  useLeaveGuard(!loading && result === null);
+  useLeaveGuard(!loading && result === null && completed === null);
 
   const timerStart = useRef<number>(Date.now());
 
   // Load attempt
   const load = useCallback(async () => {
+    setLoading(true);
+    setCompleted(null);
     try {
       const res = await api.get<AttemptLoad>(`/api/simulation/${attemptId}`);
       if (res.status !== "IN_PROGRESS" || !res.currentNode) {
-        navigate("/cases");
+        // Misi sudah selesai/ditinggalkan: tampilkan debrief, bukan lempar ke daftar.
+        const debrief = await api.get<SimDebrief>(`/api/simulation/${attemptId}/debrief`);
+        setCompleted(debrief);
+        setCaseId(debrief.caseId);
+        setCaseTitle(debrief.caseTitle ?? "Simulasi Kasus");
         return;
       }
       setNode(res.currentNode);
       setSignals(res.signalState ?? {});
+      setCaseId(res.caseId ?? null);
       setCaseTitle(res.caseTitle ?? "Simulasi Kasus");
-      timerStart.current = Date.now();
+      const elapsedSec = res.elapsedSec ?? 0;
+      timerStart.current = Date.now() - elapsedSec * 1000;
+      setElapsed(elapsedSec);
     } catch (e: any) {
       setError(e.message || "Gagal memuat simulasi.");
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attemptId]);
 
   useEffect(() => { void load(); }, [load]);
 
   useEffect(() => {
-    if (loading || result) return;
+    if (loading || result || completed) return;
     const t = setInterval(() => setElapsed(Math.floor((Date.now() - timerStart.current) / 1000)), 1000);
     return () => clearInterval(t);
-  }, [loading, result]);
+  }, [loading, result, completed]);
 
   const submit = async (optionId: string) => {
     if (submitting || !node?.options) return;
@@ -141,17 +153,34 @@ export function SimulationPage() {
     navigate("/cases");
   };
 
-  const restart = () => {
-    setNode(null);
-    setResult(null);
-    setHint(null);
-    setFeedback(null);
-    setMoves(0);
-    setWrongCount(0);
-    setHintCount(0);
-    setTimeline([]);
+  const startFresh = async () => {
+    if (!caseId) {
+      navigate("/cases");
+      return;
+    }
     setLoading(true);
-    void load();
+    try {
+      const res = await api.post<{ attemptId: string }>(`/api/cases/${caseId}/start`);
+      setNode(null);
+      setResult(null);
+      setCompleted(null);
+      setHint(null);
+      setFeedback(null);
+      setMoves(0);
+      setWrongCount(0);
+      setHintCount(0);
+      setTimeline([]);
+      setElapsed(0);
+      timerStart.current = Date.now();
+      navigate(`/simulation/${res.attemptId}`);
+    } catch (e: any) {
+      toast.error(e.message || "Gagal memulai misi baru.");
+      setLoading(false);
+    }
+  };
+
+  const restart = () => {
+    void startFresh();
   };
 
   if (loading) return <div className="flex min-h-[60vh] items-center justify-center"><LoaderText /></div>;
@@ -162,6 +191,10 @@ export function SimulationPage() {
         <Button variant="outline" asChild><Link to="/cases">Kembali ke kasus</Link></Button>
       </div>
     );
+
+  if (completed) {
+    return <CompletedDebrief data={completed} onRestart={restart} onExit={() => navigate("/cases")} />;
+  }
 
   if (!node) return null;
 
@@ -429,52 +462,135 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
           </div>
         </div>
 
-        {debrief.length > 0 && (
-          <div className="border-t border-border px-6 py-5">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
-                  Debrief misi
-                </div>
-                <h2 className="mt-0.5 font-display text-base font-extrabold">Timeline langkahmu</h2>
-              </div>
-              <span className="rounded-full bg-muted px-2 py-0.5 font-mono-tech text-[9px] font-bold text-muted-foreground">
-                {debrief.length} langkah
-              </span>
-            </div>
-
-            <ol className="mt-3 space-y-2">
-              {debrief.map((step) => (
-                <li key={step.step} className="flex gap-2.5 rounded-xl border border-border/60 bg-muted/20 p-2.5">
-                  <span
-                    className={cn(
-                      "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg font-mono-tech text-[9px] font-bold",
-                      step.wasCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
-                    )}
-                  >
-                    {step.step}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                      {step.nodeText}
-                    </div>
-                    <div className="text-[11.5px] font-semibold leading-snug text-slate-700">{step.optionLabel}</div>
-                    <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[9.5px] text-muted-foreground">
-                      <span className={step.wasCorrect ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>
-                        {step.wasCorrect ? "Langkah tepat" : "Langkah berisiko"}
-                      </span>
-                      {step.hintLevel > 0 && <span>· hint level {step.hintLevel}</span>}
-                    </div>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        )}
+        <DebriefTimeline steps={debrief} />
 
         <div className="flex gap-2 px-6 pb-6">
           <Button className="flex-1" onClick={onRestart}>
             <RotateCcw className="h-4 w-4" /> Coba Lagi
+          </Button>
+          <Button variant="outline" className="flex-1" onClick={onExit}>
+            Kembali ke Kasus
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+/** Timeline langkah yang dipakai ulang di layar hasil dan riwayat misi. */
+function DebriefTimeline({ steps }: { steps: SimDebriefStep[] }) {
+  if (steps.length === 0) return null;
+  return (
+    <div className="border-t border-border px-6 py-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+            Debrief misi
+          </div>
+          <h2 className="mt-0.5 font-display text-base font-extrabold">Timeline langkahmu</h2>
+        </div>
+        <span className="rounded-full bg-muted px-2 py-0.5 font-mono-tech text-[9px] font-bold text-muted-foreground">
+          {steps.length} langkah
+        </span>
+      </div>
+
+      <ol className="mt-3 space-y-2">
+        {steps.map((step) => (
+          <li key={step.step} className="flex gap-2.5 rounded-xl border border-border/60 bg-muted/20 p-2.5">
+            <span
+              className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-lg font-mono-tech text-[9px] font-bold",
+                step.wasCorrect ? "bg-emerald-500 text-white" : "bg-rose-500 text-white"
+              )}
+            >
+              {step.step}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[9.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+                {step.nodeText}
+              </div>
+              <div className="text-[11.5px] font-semibold leading-snug text-slate-700">{step.optionLabel}</div>
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[9.5px] text-muted-foreground">
+                <span className={step.wasCorrect ? "font-bold text-emerald-600" : "font-bold text-rose-600"}>
+                  {step.wasCorrect ? "Langkah tepat" : "Langkah berisiko"}
+                </span>
+                {step.hintLevel > 0 && <span>· hint level {step.hintLevel}</span>}
+              </div>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+/** Layar debrief untuk misi yang sudah selesai dan dibuka kembali dari riwayat. */
+function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRestart: () => void; onExit: () => void }) {
+  const success = data.success === true;
+  const abandoned = data.status === "ABANDONED";
+  const accuracy = data.accuracy !== null ? Math.round(data.accuracy * 100) : null;
+
+  return (
+    <div className="animate-fade-in-up mx-auto max-w-2xl pt-6">
+      <Card className="overflow-hidden">
+        <div
+          className={cn(
+            "px-6 py-7",
+            success ? "bg-gradient-to-br from-emerald-500/15 to-teal-500/10" : "bg-gradient-to-br from-slate-500/15 to-slate-400/10"
+          )}
+        >
+          <div className="flex items-start gap-4">
+            <div
+              className={cn(
+                "flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl shadow-lift ring-4 ring-white/50",
+                success ? "bg-emerald-500 text-white" : "bg-slate-700 text-white"
+              )}
+            >
+              {success ? <CircleCheck className="h-7 w-7" /> : <CircleX className="h-7 w-7" />}
+            </div>
+            <div className="min-w-0">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                {abandoned ? "Misi ditinggalkan" : success ? "Misi selesai" : "Misi belum berhasil"}
+              </div>
+              <h1 className="mt-1 font-display text-xl font-extrabold leading-snug">{data.caseTitle}</h1>
+              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] text-muted-foreground">
+                <span className="font-mono-tech font-bold text-violet-600">{data.skill.code}</span>
+                <span>·</span>
+                <span>{data.skill.name}</span>
+                <span>·</span>
+                <span className={cn("rounded-full px-1.5 py-0.5 text-[9px] font-bold", difficultyColor(data.difficulty))}>
+                  {difficultyLabel(data.difficulty)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
+              <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Skor</div>
+              <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{Math.round(data.score ?? 0)}</div>
+            </div>
+            <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
+              <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Akurasi</div>
+              <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{accuracy !== null ? `${accuracy}%` : "—"}</div>
+            </div>
+            <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
+              <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Waktu</div>
+              <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{data.timeSec !== null ? formatTime(data.timeSec) : "—"}</div>
+            </div>
+          </div>
+
+          <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
+            Debrief ini tersimpan permanen. Bandingkan langkahmu dengan solusi paling efisien, lalu ulangi misi untuk
+            memperbaiki akurasi dan waktu.
+          </p>
+        </div>
+
+        <DebriefTimeline steps={data.timeline} />
+
+        <div className="flex gap-2 px-6 py-5">
+          <Button className="flex-1" onClick={onRestart}>
+            <RotateCcw className="h-4 w-4" /> Ulangi misi
           </Button>
           <Button variant="outline" className="flex-1" onClick={onExit}>
             Kembali ke Kasus

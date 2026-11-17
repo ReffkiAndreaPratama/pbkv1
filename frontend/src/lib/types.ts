@@ -118,8 +118,11 @@ export interface SimDebriefStep {
 }
 
 export interface SimDebrief {
+  id: string;
+  caseId: string;
   caseTitle: string;
   skill: { code: string; name: string };
+  difficulty: Difficulty;
   status: string;
   success: boolean | null;
   score: number | null;
@@ -128,6 +131,22 @@ export interface SimDebrief {
   hintsUsed: number;
   signalState: Record<string, string | boolean | number>;
   timeline: SimDebriefStep[];
+}
+
+export interface SimHistoryItem {
+  id: string;
+  caseId: string;
+  caseTitle: string;
+  skill: { code: string; name: string };
+  difficulty: Difficulty;
+  status: string;
+  success: boolean | null;
+  score: number | null;
+  accuracy: number | null;
+  timeSec: number | null;
+  hintsUsed: number;
+  startedAt: string;
+  completedAt: string | null;
 }
 
 export interface SimSubmitResponse {

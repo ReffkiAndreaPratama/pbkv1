@@ -80,15 +80,48 @@ async function buildDebrief(attemptId: string, caseId: string) {
   }));
 }
 
+/**
+ * Riwayat misi yang sudah selesai/ditinggalkan.
+ * Dipakai halaman simulasi untuk membuka ulang debrief tanpa mengulang misi.
+ */
+router.get("/history", async (req: any, res) => {
+  const attempts = await prisma.simulationAttempt.findMany({
+    where: { userId: req.user!.id, status: { not: "IN_PROGRESS" } },
+    orderBy: { startedAt: "desc" },
+    take: 20,
+    include: { case: { include: { skill: true } } },
+  });
+  res.json(
+    attempts.map((a) => ({
+      id: a.id,
+      caseId: a.caseId,
+      caseTitle: a.case.title,
+      skill: a.case.skill,
+      difficulty: a.case.difficulty,
+      status: a.status,
+      success: a.success,
+      score: a.score,
+      accuracy: a.accuracy,
+      timeSec: a.timeSec,
+      hintsUsed: a.hintsUsed,
+      startedAt: a.startedAt,
+      completedAt: a.completedAt,
+    }))
+  );
+});
+
 router.get("/:attemptId", async (req: any, res) => {
   const attempt = await prisma.simulationAttempt.findUnique({ where: { id: req.params.attemptId }, include: { case: { include: { skill: true } } } });
   if (!attempt || attempt.userId !== req.user!.id) { res.status(404).json({ error: "Attempt not found." }); return; }
 
   if (attempt.status !== "IN_PROGRESS") {
     res.json({
+      id: attempt.id,
+      caseId: attempt.caseId,
       status: attempt.status === "ABANDONED" ? "ABANDONED" : "COMPLETED",
       caseTitle: attempt.case.title,
       skill: attempt.case.skill,
+      difficulty: attempt.case.difficulty,
       score: attempt.score,
       accuracy: attempt.accuracy,
       success: attempt.success,
@@ -109,8 +142,10 @@ router.get("/:attemptId", async (req: any, res) => {
 
   res.json({
     status: "IN_PROGRESS",
+    caseId: attempt.caseId,
     caseTitle: attempt.case.title,
     skill: attempt.case.skill,
+    elapsedSec: Math.round((Date.now() - attempt.startedAt.getTime()) / 1000),
     currentNode: node,
     signalState: signals,
   });
@@ -126,8 +161,11 @@ router.get("/:attemptId/debrief", async (req: any, res) => {
     return;
   }
   res.json({
+    id: attempt.id,
+    caseId: attempt.caseId,
     caseTitle: attempt.case.title,
     skill: attempt.case.skill,
+    difficulty: attempt.case.difficulty,
     status: attempt.status,
     success: attempt.success,
     score: attempt.score,

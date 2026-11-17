@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
+  Clock,
+  History,
   Lock,
   Play,
   Search,
@@ -14,9 +16,9 @@ import {
 import { api } from "@/lib/api";
 import { getJalur } from "@/lib/learning-path";
 import { CardGridSkeleton, EmptyState } from "@/components/ui/feedback";
-import { difficultyColor, difficultyLabel, cn, tierColor, tierLabel } from "@/lib/utils";
+import { difficultyColor, difficultyLabel, cn, formatTime, tierColor, tierLabel } from "@/lib/utils";
 import { skillImageUrl } from "@/lib/skill-media";
-import type { CaseListItem, Difficulty } from "@/lib/types";
+import type { CaseListItem, Difficulty, SimHistoryItem } from "@/lib/types";
 
 const DIFF_FILTERS: { value: "ALL" | Difficulty; label: string }[] = [
   { value: "ALL", label: "Semua" },
@@ -35,6 +37,7 @@ const AVAIL_FILTERS: { value: Availability; label: string }[] = [
 
 export function CasesPage() {
   const [cases, setCases] = useState<CaseListItem[] | null>(null);
+  const [history, setHistory] = useState<SimHistoryItem[]>([]);
   const [search, setSearch] = useState("");
   const [diff, setDiff] = useState<"ALL" | Difficulty>("ALL");
   const [avail, setAvail] = useState<Availability>("ALL");
@@ -44,6 +47,10 @@ export function CasesPage() {
       .get<CaseListItem[]>("/api/cases")
       .then(setCases)
       .catch(() => setCases([]));
+    api
+      .get<SimHistoryItem[]>("/api/simulation/history")
+      .then(setHistory)
+      .catch(() => setHistory([]));
   }, []);
 
   const stats = useMemo(() => {
@@ -180,6 +187,99 @@ export function CasesPage() {
         <QuickStat icon={Lock} label="Terkunci" value={`${stats.locked}`} hint="naikkan mastery" tone="amber" />
         <QuickStat icon={TrendingUp} label="Percobaan" value={`${stats.tries}`} hint={`${stats.solved} kasus pernah benar`} tone="blue" />
       </section>
+
+      {/* ---------------------------------------------------------- history */}
+      {history.length > 0 && (
+        <section>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                Log misi
+              </div>
+              <h2 className="mt-0.5 font-display text-xl font-extrabold">Riwayat simulasi</h2>
+            </div>
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              Buka ulang debrief kapan saja
+            </span>
+          </div>
+
+          <div className="mt-3 overflow-hidden rounded-2xl border border-border/70 bg-card shadow-soft">
+            <ul className="divide-y divide-border/60">
+              {history.slice(0, 8).map((h) => {
+                const passed = h.success === true;
+                const abandoned = h.status === "ABANDONED";
+                return (
+                  <li key={h.id}>
+                    <Link
+                      to={`/simulation/${h.id}`}
+                      className="group flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40"
+                    >
+                      <span
+                        className={cn(
+                          "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ring-1",
+                          passed
+                            ? "bg-emerald-50 text-emerald-700 ring-emerald-100"
+                            : abandoned
+                              ? "bg-amber-50 text-amber-700 ring-amber-100"
+                              : "bg-rose-50 text-rose-700 ring-rose-100"
+                        )}
+                      >
+                        {passed ? (
+                          <CheckCircle2 className="h-4 w-4" />
+                        ) : abandoned ? (
+                          <History className="h-4 w-4" />
+                        ) : (
+                          <ShieldAlert className="h-4 w-4" />
+                        )}
+                      </span>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="font-mono-tech text-[9px] font-bold uppercase tracking-widest text-violet-600">
+                            {h.skill.code}
+                          </span>
+                          <span className={cn("rounded-full px-1.5 py-0.5 text-[8.5px] font-bold", difficultyColor(h.difficulty))}>
+                            {difficultyLabel(h.difficulty)}
+                          </span>
+                          <span
+                            className={cn(
+                              "rounded-full px-1.5 py-0.5 text-[8.5px] font-bold",
+                              passed
+                                ? "bg-emerald-100 text-emerald-700"
+                                : abandoned
+                                  ? "bg-amber-100 text-amber-700"
+                                  : "bg-rose-100 text-rose-700"
+                            )}
+                          >
+                            {abandoned ? "Ditinggalkan" : passed ? "Berhasil" : "Belum berhasil"}
+                          </span>
+                        </div>
+                        <div className="mt-0.5 truncate text-[12px] font-semibold">{h.caseTitle}</div>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono-tech text-[9.5px] text-muted-foreground">
+                          <span>Skor {Math.round(h.score ?? 0)}</span>
+                          <span>·</span>
+                          <span>Akurasi {h.accuracy !== null ? `${Math.round(h.accuracy * 100)}%` : "—"}</span>
+                          <span>·</span>
+                          <span className="inline-flex items-center gap-0.5">
+                            <Clock className="h-2.5 w-2.5" />
+                            {h.timeSec ? formatTime(h.timeSec) : "—"}
+                          </span>
+                          <span>·</span>
+                          <span>{formatWhen(h.completedAt ?? h.startedAt)}</span>
+                        </div>
+                      </div>
+
+                      <span className="hidden shrink-0 items-center gap-1 rounded-lg border border-border/70 px-2.5 py-1.5 text-[10px] font-bold text-muted-foreground transition-colors group-hover:border-primary/30 group-hover:text-primary sm:inline-flex">
+                        Debrief <ArrowRight className="h-3 w-3" />
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </section>
+      )}
 
       {/* ---------------------------------------------------------- filters + list */}
       <section id="cases" className="scroll-mt-24">
@@ -423,6 +523,17 @@ function TerminalRow({
       </div>
     </div>
   );
+}
+
+function formatWhen(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleString("id-ID", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 function QuickStat({
