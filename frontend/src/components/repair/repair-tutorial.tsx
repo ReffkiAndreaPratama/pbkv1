@@ -59,8 +59,8 @@ const STEPS: TutorialStep[] = [
   {
     icon: Search,
     eyebrow: "Langkah 3",
-    title: "Inspeksi, lalu ukur",
-    body: "Mulai dengan Inspeksi untuk melihat kondisi fisik. Setelah itu gunakan Multimeter, POST Card, atau Diagnostik Software untuk mendapat pembacaan yang lebih akurat.",
+    title: "Pilih alat di tool dock, lalu klik komponen",
+    body: "Tool dock di bawah meja kerja berisi Pilih (0), Inspeksi (1), Multimeter (2), POST Card (3), dan Diagnostik Software (4). Pilih alat, lalu klik komponen untuk menerapkannya.",
     tip: "Hasil inspeksi dan pengukuran muncul di Panel Diagnosis. Tidak semua alat berguna untuk setiap komponen.",
   },
   {
@@ -119,7 +119,7 @@ export function RepairTutorial({ open, onClose }: RepairTutorialProps) {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center bg-slate-950/60 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] flex items-end justify-center bg-[#03070e]/80 backdrop-blur-sm sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
@@ -131,16 +131,16 @@ export function RepairTutorial({ open, onClose }: RepairTutorialProps) {
         aria-modal="true"
         aria-labelledby="repair-tutorial-title"
         tabIndex={-1}
-        className="animate-fade-in-up w-full max-w-lg overflow-hidden rounded-t-3xl bg-card shadow-lift outline-none sm:rounded-3xl"
+        className="animate-fade-in-up w-full max-w-lg overflow-hidden rounded-t-3xl border border-white/10 bg-[#081422] text-slate-200 shadow-[0_40px_120px_-40px_rgba(0,0,0,1)] outline-none sm:rounded-2xl"
       >
-        <div className="flex items-center justify-between border-b border-border/60 px-5 py-3">
-          <span className="flex items-center gap-2 font-mono-tech text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-600">
+        <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
+          <span className="flex items-center gap-2 font-mono-tech text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-300">
             <Wrench className="h-3.5 w-3.5" aria-hidden /> Cara main bengkel
           </span>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Tutup tutorial"
           >
             <X className="h-4 w-4" />
@@ -158,38 +158,38 @@ export function RepairTutorial({ open, onClose }: RepairTutorialProps) {
                 aria-current={i === index ? "step" : undefined}
                 className={cn(
                   "h-1.5 rounded-full transition-all",
-                  i === index ? "w-7 bg-emerald-500" : i < index ? "w-3 bg-emerald-300" : "w-3 bg-border"
+                  i === index ? "w-7 bg-emerald-400" : i < index ? "w-3 bg-emerald-400/50" : "w-3 bg-white/15"
                 )}
               />
             ))}
           </div>
 
           <div className="flex items-start gap-3">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/20">
+            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-emerald-400/10 text-emerald-300 ring-1 ring-emerald-300/25">
               <Icon className="h-6 w-6" aria-hidden />
             </span>
             <div className="min-w-0">
-              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">
                 {step.eyebrow}
               </div>
-              <h2 id="repair-tutorial-title" className="mt-0.5 font-display text-lg font-extrabold leading-snug">
+              <h2 id="repair-tutorial-title" className="mt-0.5 font-display text-lg font-extrabold leading-snug text-white">
                 {step.title}
               </h2>
             </div>
           </div>
 
-          <p className="mt-3 text-sm leading-relaxed text-foreground/80">{step.body}</p>
+          <p className="mt-3 text-sm leading-relaxed text-slate-300">{step.body}</p>
 
-          <div className="mt-3 rounded-xl border border-amber-200/70 bg-amber-50/70 px-3 py-2.5 text-xs leading-relaxed text-amber-900">
-            <strong className="font-bold">Tips:</strong> {step.tip}
+          <div className="mt-3 rounded-xl border border-amber-300/25 bg-amber-400/[0.08] px-3 py-2.5 text-xs leading-relaxed text-amber-100/90">
+            <strong className="font-bold text-amber-300">Tips:</strong> {step.tip}
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-5 py-4">
+        <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-4">
           <button
             type="button"
             onClick={onClose}
-            className="text-xs font-semibold text-muted-foreground transition-colors hover:text-foreground"
+            className="text-xs font-semibold text-slate-500 transition-colors hover:text-white"
           >
             Lewati
           </button>
@@ -199,6 +199,7 @@ export function RepairTutorial({ open, onClose }: RepairTutorialProps) {
               size="sm"
               onClick={() => setIndex((i) => Math.max(0, i - 1))}
               disabled={index === 0}
+              className="border-white/15 bg-white/5 text-slate-200 hover:bg-white/10 hover:text-white"
             >
               <ChevronLeft className="h-4 w-4" /> Sebelumnya
             </Button>

@@ -3900,18 +3900,6 @@ body {
   background: linear-gradient(135deg, rgba(56, 189, 248, .08), rgba(52, 211, 153, .06));
 }
 
-.laptop-screen-hint {
-  position: absolute;
-  bottom: 8%;
-  left: 50%;
-  transform: translateX(-50%);
-  color: rgba(125, 211, 252, .5);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 8px;
-  letter-spacing: .18em;
-  text-transform: uppercase;
-}
-
 .laptop-camera-dot {
   position: absolute;
   top: 1.4%;
@@ -4796,11 +4784,6 @@ body {
   background: repeating-linear-gradient(180deg, rgba(148, 197, 255, .22) 0 1px, transparent 1px 4px);
 }
 
-.laptop-screen-hint {
-  color: rgba(125, 211, 252, .62);
-  font-size: 9px;
-}
-
 /* ---------- accessibility & motion ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -4839,7 +4822,890 @@ body {
   .page-heading h1 {
     font-size: 24px;
   }
-  .device-chassis {
-    padding: 10px;
-  }
+}
+
+/* ============================================================
+   SIMULATOR WORKBENCH — panggung perangkat bergaya bengkel pro.
+   Blok ini berada paling akhir sehingga menimpa chassis versi
+   terang sebelumnya tanpa mengubah markup lama.
+   ============================================================ */
+
+.device-chassis {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #dbe6f3;
+}
+
+/* ---------- stage ---------- */
+.chassis-stage {
+  position: relative;
+  overflow: hidden;
+  padding: 30px 16px 20px;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 14px;
+  background-color: #060d18;
+  background-image:
+    linear-gradient(to right, rgba(148, 163, 184, .055) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(148, 163, 184, .055) 1px, transparent 1px),
+    radial-gradient(120% 80% at 50% -10%, rgba(56, 189, 248, .13), transparent 62%),
+    radial-gradient(90% 60% at 50% 108%, rgba(16, 185, 129, .10), transparent 68%),
+    linear-gradient(180deg, #0a1626 0%, #060d18 72%);
+  background-size: 30px 30px, 30px 30px, auto, auto, auto;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05), inset 0 0 90px rgba(0, 0, 0, .55);
+}
+
+.chassis-stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(112% 92% at 50% 45%, transparent 52%, rgba(2, 6, 14, .62) 100%);
+}
+
+.chassis-stage-badge {
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  z-index: 4;
+  color: rgba(125, 211, 252, .55);
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.chassis-stage-floor {
+  position: absolute;
+  left: 50%;
+  bottom: 4px;
+  z-index: 0;
+  width: min(74%, 430px);
+  height: 30px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(56, 189, 248, .18), transparent 70%);
+  filter: blur(7px);
+  pointer-events: none;
+}
+
+/* ---------- PC tower ---------- */
+.device-chassis .pc-chassis {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+.device-chassis .pc-tower {
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  aspect-ratio: 4 / 5;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .26);
+  border-radius: 14px;
+  background:
+    linear-gradient(112deg, rgba(255, 255, 255, .10) 0%, rgba(255, 255, 255, .03) 18%, transparent 38%),
+    linear-gradient(90deg, #0b1422 0%, #0a111d 62%, #070c15 100%);
+  box-shadow: 0 40px 70px -30px rgba(0, 0, 0, .95), inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+.pc-glass {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background:
+    linear-gradient(118deg, transparent 0 46%, rgba(255, 255, 255, .07) 46% 49%, transparent 49% 100%),
+    linear-gradient(180deg, rgba(255, 255, 255, .05), transparent 22%);
+}
+
+.pc-rgb {
+  position: absolute;
+  top: 8%;
+  bottom: 8%;
+  left: 0;
+  z-index: 0;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #22d3ee, #34d399 45%, #6366f1);
+  box-shadow: 0 0 18px rgba(52, 211, 153, .65), 0 0 40px rgba(34, 211, 238, .35);
+  opacity: .85;
+}
+
+.device-chassis .pc-front {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  width: 20%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5%;
+  padding: 9% 0;
+  border-left: 1px solid rgba(148, 163, 184, .14);
+  background: linear-gradient(180deg, #1b2533 0%, #101825 62%, #0a111b 100%);
+  box-shadow: inset 1px 0 0 rgba(255, 255, 255, .05);
+}
+
+.device-chassis .pc-power-led {
+  width: 16%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 8px #34d399, 0 0 18px rgba(52, 211, 153, .6);
+  animation: chassis-led 2.4s ease-in-out infinite;
+}
+
+.device-chassis .pc-drive-bay {
+  width: 62%;
+  height: 5.5%;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 3px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, .16), rgba(15, 23, 42, .5));
+}
+
+.pc-usb-slot {
+  width: 46%;
+  height: 2.6%;
+  border-radius: 2px;
+  background: #05090f;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, .9), 0 0 0 1px rgba(148, 163, 184, .18);
+}
+
+.device-chassis .pc-vent {
+  width: 62%;
+  height: 24%;
+  margin-top: auto;
+  border-radius: 4px;
+  background: repeating-linear-gradient(180deg, rgba(148, 163, 184, .26) 0 2px, transparent 2px 7px);
+  opacity: .7;
+}
+
+.pc-shroud {
+  position: absolute;
+  left: 4%;
+  right: 24%;
+  bottom: 2.5%;
+  z-index: 1;
+  height: 15%;
+  border: 1px solid rgba(148, 163, 184, .16);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #131d2b, #0a111b);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+
+.pc-grommet {
+  position: absolute;
+  left: 30%;
+  bottom: 19%;
+  z-index: 1;
+  width: 9%;
+  height: 5%;
+  border-radius: 4px;
+  background: #05090f;
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .22);
+}
+
+.device-chassis .pc-screw {
+  z-index: 4;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #94a3b8, #334155 70%);
+  box-shadow: inset 0 0 0 1px rgba(2, 6, 14, .8), 0 1px 2px rgba(0, 0, 0, .7);
+}
+
+.pc-floor-glow {
+  position: absolute;
+  left: 8%;
+  right: 24%;
+  bottom: 0;
+  z-index: 0;
+  height: 6px;
+  background: linear-gradient(90deg, transparent, rgba(52, 211, 153, .35), transparent);
+  filter: blur(2px);
+}
+
+/* motherboard hotspot becomes the PCB itself */
+.device-chassis .pc-tower .chassis-hotspot.is-backdrop {
+  color: #a7f3d0;
+  border: 1px solid rgba(16, 185, 129, .26);
+  border-radius: 10px;
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, .12), rgba(5, 150, 105, .03)),
+    repeating-linear-gradient(90deg, rgba(16, 185, 129, .10) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(0deg, rgba(16, 185, 129, .08) 0 1px, transparent 1px 13px),
+    #0a2620;
+  box-shadow: inset 0 0 46px rgba(16, 185, 129, .08);
+}
+
+.device-chassis .pc-tower .chassis-hotspot.is-backdrop:hover:not(:disabled) {
+  border-color: rgba(52, 211, 153, .6);
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, .18), rgba(5, 150, 105, .05)),
+    repeating-linear-gradient(90deg, rgba(16, 185, 129, .13) 0 1px, transparent 1px 13px),
+    repeating-linear-gradient(0deg, rgba(16, 185, 129, .10) 0 1px, transparent 1px 13px),
+    #0b2c25;
+}
+
+/* ---------- Laptop ---------- */
+.device-chassis .laptop-chassis {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 620px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  padding-top: 4px;
+}
+
+.device-chassis .laptop-lid {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  border: 1px solid rgba(148, 163, 184, .3);
+  border-radius: 12px 12px 4px 4px;
+  background:
+    linear-gradient(115deg, rgba(255, 255, 255, .12), transparent 30%),
+    linear-gradient(160deg, #26313f, #0d1521 72%);
+  box-shadow: 0 26px 46px -26px rgba(0, 0, 0, .9), inset 0 0 0 1px rgba(255, 255, 255, .05);
+}
+
+.device-chassis .laptop-screen {
+  position: absolute;
+  inset: 3.5% 3.5% 0;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .3);
+  border-radius: 5px;
+  background:
+    radial-gradient(circle at 50% 32%, rgba(56, 189, 248, .07), transparent 62%),
+    linear-gradient(160deg, #060d17, #050a12 60%, #070f19);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .04);
+}
+
+.laptop-screen-ui {
+  position: absolute;
+  inset: 13% 10% 16%;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.laptop-screen-brand {
+  margin-bottom: 2px;
+  color: rgba(94, 234, 212, .5);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .2em;
+}
+
+.laptop-screen-off {
+  margin-top: auto;
+  color: rgba(148, 163, 184, .42);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: .32em;
+  text-align: center;
+}
+
+.laptop-screen-standby {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  margin-bottom: auto;
+  color: rgba(100, 116, 139, .55);
+  font-size: 6.5px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+}
+
+.laptop-screen-standby i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #fbbf24;
+  box-shadow: 0 0 6px rgba(251, 191, 36, .85);
+  animation: chassis-led 2.4s ease-in-out infinite;
+}
+
+.device-chassis .laptop-screen-glow {
+  position: absolute;
+  inset: 8%;
+  border-radius: 5px;
+  background: linear-gradient(135deg, rgba(56, 189, 248, .05), rgba(52, 211, 153, .03));
+  opacity: .5;
+}
+
+.device-chassis .laptop-camera-dot {
+  top: 1.2%;
+  width: 4px;
+  height: 4px;
+  background: #05090f;
+  box-shadow: inset 0 0 2px #000, 0 0 0 1px rgba(148, 163, 184, .3);
+}
+
+.device-chassis .laptop-hinge {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 8px;
+  margin: 0 5%;
+  border-radius: 0 0 6px 6px;
+  background: linear-gradient(180deg, #1e293b, #070c15);
+  box-shadow: 0 6px 12px -6px rgba(0, 0, 0, .8);
+}
+
+.laptop-hinge span {
+  width: 18%;
+  height: 3px;
+  margin: 0 8%;
+  border-radius: 2px;
+  background: rgba(148, 163, 184, .28);
+}
+
+.device-chassis .laptop-base {
+  position: relative;
+  aspect-ratio: 16 / 6;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .28);
+  border-radius: 4px 4px 12px 12px;
+  background: linear-gradient(180deg, #2a3547 0%, #1a2432 55%, #101825 100%);
+  box-shadow: 0 24px 40px -26px rgba(0, 0, 0, .9), inset 0 1px 0 rgba(255, 255, 255, .07);
+}
+
+.device-chassis .laptop-deck {
+  position: absolute;
+  inset: 5% 4%;
+  border-radius: 5px;
+  background: linear-gradient(180deg, #1e2939, #141d2a);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+.device-chassis .laptop-keyboard-grid {
+  position: absolute;
+  top: 9%;
+  left: 6%;
+  width: 64%;
+  height: 52%;
+  border-radius: 4px;
+  background-color: #0b1320;
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0 7px, #2a3543 7px 9px),
+    repeating-linear-gradient(0deg, transparent 0 7px, #2a3543 7px 9px);
+  box-shadow: inset 0 0 0 1px rgba(148, 163, 184, .18), inset 0 4px 10px rgba(0, 0, 0, .5);
+}
+
+.laptop-speaker-dots {
+  position: absolute;
+  top: 70%;
+  width: 12%;
+  height: 20%;
+  opacity: .5;
+  background-image: radial-gradient(rgba(148, 163, 184, .55) 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+.laptop-speaker-dots.is-left { left: 7%; }
+.laptop-speaker-dots.is-right { right: 7%; }
+
+.device-chassis .laptop-internals {
+  position: relative;
+  margin-top: 16px;
+  padding-top: 18px;
+}
+
+.laptop-internals-head {
+  position: absolute;
+  top: 0;
+  left: 2px;
+  right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.device-chassis .laptop-internals-label {
+  position: static;
+  color: #7f8ea6;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+
+.laptop-internals-tag {
+  color: rgba(125, 211, 252, .5);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .16em;
+}
+
+.device-chassis .laptop-internals-stage {
+  position: relative;
+  aspect-ratio: 16 / 5;
+  overflow: hidden;
+  border: 1px solid rgba(16, 185, 129, .22);
+  border-radius: 10px;
+  background: #071a16;
+  box-shadow: inset 0 0 50px rgba(0, 0, 0, .7);
+}
+
+.device-chassis .laptop-pcb {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, rgba(16, 185, 129, .12) 0 1px, transparent 1px 14px),
+    repeating-linear-gradient(0deg, rgba(16, 185, 129, .09) 0 1px, transparent 1px 14px),
+    linear-gradient(135deg, #0a352c, #061f1a);
+}
+
+.laptop-heatpipe {
+  position: absolute;
+  top: 46%;
+  left: 26%;
+  z-index: 0;
+  width: 58%;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #b45309, #7c2d12 55%, #451a03);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .7), inset 0 1px 0 rgba(251, 191, 36, .35);
+  opacity: .8;
+}
+
+/* ---------- hotspots ---------- */
+.device-chassis .chassis-hotspot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  padding: 4px 3px;
+  overflow: hidden;
+  color: #dbeafe;
+  text-align: center;
+  border: 1px solid rgba(148, 163, 184, .38);
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(30, 41, 59, .95), rgba(13, 21, 34, .95));
+  box-shadow: 0 6px 14px -7px rgba(0, 0, 0, .85), inset 0 1px 0 rgba(255, 255, 255, .06);
+  transition: transform .15s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+}
+
+.device-chassis .chassis-hotspot:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: rgba(125, 211, 252, .75);
+  background: linear-gradient(180deg, rgba(12, 52, 78, .96), rgba(8, 32, 50, .96));
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, .16), 0 10px 20px -10px rgba(0, 0, 0, .9);
+}
+
+.device-chassis .chassis-hotspot.is-inspected {
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, .6);
+  background: linear-gradient(180deg, rgba(8, 47, 73, .96), rgba(4, 28, 44, .96));
+}
+
+.device-chassis .chassis-hotspot.is-fixed {
+  color: #a7f3d0;
+  border-color: rgba(52, 211, 153, .6);
+  background: linear-gradient(180deg, rgba(6, 78, 59, .95), rgba(3, 42, 32, .95));
+}
+
+.device-chassis .chassis-hotspot.is-selected {
+  color: #fef3c7;
+  border-color: #fbbf24;
+  background: linear-gradient(180deg, rgba(69, 52, 8, .96), rgba(38, 28, 5, .96));
+  box-shadow: 0 0 0 1px rgba(251, 191, 36, .5), 0 0 22px rgba(251, 191, 36, .28), inset 0 1px 0 rgba(255, 255, 255, .1);
+}
+
+.device-chassis .chassis-hotspot:disabled {
+  cursor: default;
+}
+
+.device-chassis .chassis-hotspot-icon {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+}
+.device-chassis .chassis-hotspot-icon svg { width: 15px; height: 15px; }
+
+.device-chassis .chassis-hotspot-label {
+  position: relative;
+  z-index: 1;
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 8px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: .01em;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.device-chassis .chassis-hotspot.is-compact .chassis-hotspot-icon svg { width: 13px; height: 13px; }
+
+.device-chassis .chassis-hotspot-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  z-index: 2;
+  width: 11px;
+  height: 11px;
+}
+.device-chassis .chassis-hotspot-badge.is-done { color: #6ee7b7; }
+.device-chassis .chassis-hotspot-badge.is-seen { color: #7dd3fc; }
+
+.chassis-hotspot-led {
+  position: absolute;
+  left: 4px;
+  bottom: 4px;
+  z-index: 2;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #475569;
+  box-shadow: 0 0 0 1px rgba(2, 6, 14, .7);
+}
+.chassis-hotspot-led.is-inspected { background: #38bdf8; box-shadow: 0 0 6px rgba(56, 189, 248, .9); }
+.chassis-hotspot-led.is-fixed { background: #34d399; box-shadow: 0 0 6px rgba(52, 211, 153, .9); }
+
+.chassis-hotspot-fan {
+  position: absolute;
+  inset: 5px;
+  z-index: 0;
+  border-radius: 50%;
+  opacity: .55;
+  background: conic-gradient(
+    from 0deg,
+    rgba(125, 211, 252, .35),
+    transparent 22%,
+    rgba(125, 211, 252, .35) 38%,
+    transparent 60%,
+    rgba(125, 211, 252, .35) 76%,
+    transparent 96%
+  );
+  animation: chassis-spin 3.4s linear infinite;
+  pointer-events: none;
+}
+
+.chassis-corner {
+  position: absolute;
+  z-index: 3;
+  width: 9px;
+  height: 9px;
+  border: 2px solid #fbbf24;
+  pointer-events: none;
+}
+.chassis-corner.is-tl { top: 1px; left: 1px; border-right: 0; border-bottom: 0; border-radius: 3px 0 0 0; }
+.chassis-corner.is-tr { top: 1px; right: 1px; border-left: 0; border-bottom: 0; border-radius: 0 3px 0 0; }
+.chassis-corner.is-bl { bottom: 1px; left: 1px; border-right: 0; border-top: 0; border-radius: 0 0 0 3px; }
+.chassis-corner.is-br { bottom: 1px; right: 1px; border-left: 0; border-top: 0; border-radius: 0 0 3px 0; }
+
+/* backdrop hotspots: motherboard / LCD panel */
+.device-chassis .chassis-hotspot.is-backdrop {
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 4px;
+  padding: 5px 6px;
+  color: #a7f3d0;
+  border: 1px dashed rgba(52, 211, 153, .4);
+  background: rgba(6, 78, 59, .16);
+  box-shadow: none;
+}
+
+.device-chassis .chassis-hotspot.is-backdrop .chassis-hotspot-label {
+  margin-top: 2px;
+  max-width: calc(100% - 10px);
+  text-align: left;
+  font-size: 7.5px;
+  letter-spacing: .03em;
+}
+
+.device-chassis .chassis-hotspot.is-backdrop:hover:not(:disabled) {
+  transform: none;
+  border-color: rgba(110, 231, 183, .8);
+  background: rgba(6, 78, 59, .26);
+  box-shadow: none;
+}
+
+.device-chassis .chassis-hotspot.is-backdrop.is-selected {
+  border-color: #fbbf24;
+  background: rgba(69, 52, 8, .3);
+  box-shadow: inset 0 0 0 2px rgba(251, 191, 36, .35);
+}
+
+.device-chassis .laptop-lid .chassis-hotspot.is-backdrop {
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, .4);
+  background: rgba(8, 47, 73, .10);
+}
+
+.device-chassis .laptop-lid .chassis-hotspot.is-backdrop:hover:not(:disabled) {
+  border-color: rgba(125, 211, 252, .8);
+  background: rgba(8, 47, 73, .22);
+}
+
+.device-chassis .laptop-internals-stage .chassis-hotspot.is-backdrop {
+  border-color: rgba(52, 211, 153, .28);
+  background: rgba(6, 78, 59, .08);
+}
+
+/* ---------- desk tray ---------- */
+.device-chassis .chassis-tray {
+  margin-top: 12px;
+  padding-top: 11px;
+  border-top: 1px dashed rgba(148, 163, 184, .18);
+}
+
+.device-chassis .chassis-tray-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 8px;
+  color: #7f8ea6;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
+.device-chassis .chassis-tray-label em {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  color: #5eead4;
+  font-style: normal;
+  font-size: 8.5px;
+  border-radius: 999px;
+  background: rgba(94, 234, 212, .12);
+  box-shadow: inset 0 0 0 1px rgba(94, 234, 212, .25);
+}
+
+.device-chassis .chassis-tray-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.device-chassis .chassis-tray-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  color: #cbd5e1;
+  font-size: 10px;
+  font-weight: 700;
+  border: 1px solid rgba(148, 163, 184, .22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, .045);
+  transition: .15s;
+}
+
+.device-chassis .chassis-tray-item:hover:not(:disabled) {
+  color: #fff;
+  border-color: rgba(125, 211, 252, .55);
+  background: rgba(56, 189, 248, .12);
+}
+
+.device-chassis .chassis-tray-item.is-inspected {
+  color: #bae6fd;
+  border-color: rgba(56, 189, 248, .5);
+  background: rgba(8, 47, 73, .5);
+}
+
+.device-chassis .chassis-tray-item.is-fixed {
+  color: #a7f3d0;
+  border-color: rgba(52, 211, 153, .5);
+  background: rgba(6, 78, 59, .5);
+}
+
+.device-chassis .chassis-tray-item.is-selected {
+  color: #fde68a;
+  border-color: #fbbf24;
+  background: rgba(69, 52, 8, .55);
+  box-shadow: 0 0 0 3px rgba(251, 191, 36, .14);
+}
+
+.device-chassis .chassis-tray-icon { display: grid; place-items: center; }
+.device-chassis .chassis-tray-icon svg { width: 13px; height: 13px; }
+
+.device-chassis .chassis-tray-name {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.device-chassis .chassis-tray-badge { width: 12px; height: 12px; }
+.device-chassis .chassis-tray-badge.is-done { color: #6ee7b7; }
+.device-chassis .chassis-tray-badge.is-seen { color: #7dd3fc; }
+
+/* ---------- mobile component picker ---------- */
+.device-chassis .chassis-mobile-list {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, .18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .035);
+}
+
+.device-chassis .chassis-mobile-list > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  color: #5eead4;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  list-style: none;
+}
+
+.device-chassis .chassis-mobile-list > summary::-webkit-details-marker { display: none; }
+.device-chassis .chassis-mobile-summary { display: inline-flex; align-items: center; gap: 6px; }
+.device-chassis .chassis-mobile-summary svg { width: 14px; height: 14px; }
+.device-chassis .chassis-mobile-count { color: #94a3b8; font-size: 8.5px; }
+
+.device-chassis .chassis-mobile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  padding: 0 10px 10px;
+}
+
+.device-chassis .chassis-mobile-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 6px 8px;
+  color: #e2e8f0;
+  text-align: left;
+  border: 1px solid rgba(148, 163, 184, .2);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, .05);
+}
+
+.device-chassis .chassis-mobile-item:hover:not(:disabled) { border-color: rgba(125, 211, 252, .55); background: rgba(56, 189, 248, .12); }
+.device-chassis .chassis-mobile-item.is-inspected { color: #bae6fd; border-color: rgba(56, 189, 248, .45); background: rgba(8, 47, 73, .5); }
+.device-chassis .chassis-mobile-item.is-fixed { color: #a7f3d0; border-color: rgba(52, 211, 153, .45); background: rgba(6, 78, 59, .5); }
+.device-chassis .chassis-mobile-item.is-selected { color: #fde68a; border-color: #fbbf24; background: rgba(69, 52, 8, .55); box-shadow: inset 0 0 0 1px #fbbf24; }
+.device-chassis .chassis-mobile-item:disabled { opacity: .65; }
+
+.device-chassis .chassis-mobile-icon { display: grid; place-items: center; color: #5eead4; }
+.device-chassis .chassis-mobile-icon svg { width: 15px; height: 15px; }
+.device-chassis .chassis-mobile-name { min-width: 0; flex: 1; font-size: 10px; font-weight: 700; line-height: 1.2; }
+.device-chassis .chassis-mobile-badge { width: 13px; height: 13px; flex-shrink: 0; }
+.device-chassis .chassis-mobile-badge.is-done { color: #6ee7b7; }
+.device-chassis .chassis-mobile-badge.is-seen { color: #7dd3fc; }
+
+/* ---------- simulator motion ---------- */
+@keyframes chassis-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes chassis-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes chassis-led {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .55; }
+}
+
+@keyframes sim-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(2px); }
+}
+
+.sim-shake {
+  animation: sim-shake .42s ease-in-out;
+}
+
+@keyframes sim-scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.sim-boot-scan {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 20px;
+  background: rgba(4, 10, 20, .82);
+  backdrop-filter: blur(3px);
+}
+
+.sim-boot-scan::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: .35;
+  background: repeating-linear-gradient(180deg, rgba(125, 211, 252, .12) 0 1px, transparent 1px 5px);
+}
+
+.sim-boot-bar {
+  position: relative;
+  width: min(240px, 70%);
+  height: 3px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, .2);
+}
+
+.sim-boot-bar span {
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, #34d399, #5eead4, transparent);
+  animation: sim-boot-run 1s ease-in-out infinite;
+}
+
+@keyframes sim-boot-run {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(260%); }
+}
+
+@media (max-width: 680px) {
+  .chassis-stage { padding: 26px 10px 16px; }
+  .device-chassis .pc-tower { max-width: 360px; }
+  .device-chassis .chassis-hotspot-label { font-size: 7.5px; }
+  .device-chassis .chassis-hotspot-icon svg { width: 13px; height: 13px; }
+  .device-chassis .laptop-internals-stage { aspect-ratio: 16 / 6.5; }
+  .device-chassis .chassis-tray-name { max-width: 96px; }
+  .laptop-screen-brand { font-size: 6px; }
+  .laptop-screen-off { font-size: 12px; }
+  .laptop-screen-standby { font-size: 5.5px; }
 }
