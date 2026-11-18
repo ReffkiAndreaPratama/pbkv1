@@ -127,6 +127,8 @@ router.get("/:attemptId", async (req: any, res) => {
       success: attempt.success,
       totalMoves: attempt.totalMoves,
       wrongMoves: attempt.wrongMoves,
+      targetSteps: attempt.case.targetSteps,
+      expectedTimeSec: attempt.case.expectedTimeSec,
       timeSec: attempt.timeSec,
       hintsUsed: attempt.hintsUsed,
       signalState: attempt.signalState ?? {},
@@ -145,6 +147,8 @@ router.get("/:attemptId", async (req: any, res) => {
     caseId: attempt.caseId,
     caseTitle: attempt.case.title,
     skill: attempt.case.skill,
+    targetSteps: attempt.case.targetSteps,
+    expectedTimeSec: attempt.case.expectedTimeSec,
     elapsedSec: Math.round((Date.now() - attempt.startedAt.getTime()) / 1000),
     currentNode: node,
     signalState: signals,
@@ -172,6 +176,10 @@ router.get("/:attemptId/debrief", async (req: any, res) => {
     accuracy: attempt.accuracy,
     timeSec: attempt.timeSec,
     hintsUsed: attempt.hintsUsed,
+    totalMoves: attempt.totalMoves,
+    wrongMoves: attempt.wrongMoves,
+    targetSteps: attempt.case.targetSteps,
+    expectedTimeSec: attempt.case.expectedTimeSec,
     signalState: attempt.signalState ?? {},
     timeline: await buildDebrief(attempt.id, attempt.caseId),
   });
@@ -179,8 +187,9 @@ router.get("/:attemptId/debrief", async (req: any, res) => {
 
 router.post("/:attemptId/submit", async (req: any, res) => {
   const { attemptId } = req.params;
-  const { optionId } = req.body as { optionId: string };
+  const { optionId, hintLevel } = req.body as { optionId: string; hintLevel?: number };
   if (!optionId) { res.status(422).json({ error: "optionId required." }); return; }
+  const stepHintLevel = Math.max(0, Math.min(HINT_MAX_LEVEL, Math.round(Number(hintLevel) || 0)));
 
   const attempt = await prisma.simulationAttempt.findUnique({ where: { id: attemptId }, include: { case: { include: { skill: true, nodes: { include: { options: true } } } } } });
   if (!attempt || attempt.userId !== req.user!.id || attempt.status !== "IN_PROGRESS") {
@@ -208,7 +217,7 @@ router.post("/:attemptId/submit", async (req: any, res) => {
   const totalMoves = attempt.totalMoves + 1;
   const wrongMoves = attempt.wrongMoves + (option.isCorrect ? 0 : 1);
   await prisma.simulationStep.create({
-    data: { attemptId, nodeKey: attempt.case.nodes.find((n) => n.options.some((o) => o.id === option.id))?.nodeKey ?? "", optionLabel: option.label, wasCorrect: option.isCorrect, hintLevel: 0 },
+    data: { attemptId, nodeKey: attempt.case.nodes.find((n) => n.options.some((o) => o.id === option.id))?.nodeKey ?? "", optionLabel: option.label, wasCorrect: option.isCorrect, hintLevel: stepHintLevel },
   });
 
   const isForceFail = effect.forceFail === true;

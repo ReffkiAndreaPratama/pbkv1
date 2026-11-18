@@ -133,6 +133,10 @@ export interface SimDebrief {
   accuracy: number | null;
   timeSec: number | null;
   hintsUsed: number;
+  totalMoves: number;
+  wrongMoves: number;
+  targetSteps: number;
+  expectedTimeSec: number;
   signalState: Record<string, string | boolean | number>;
   timeline: SimDebriefStep[];
 }

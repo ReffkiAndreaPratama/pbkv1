@@ -2,12 +2,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
-  Lightbulb,
-  Terminal,
   CircleCheck,
   CircleX,
-  Star,
+  Lightbulb,
+  LogOut,
   RotateCcw,
+  Save,
+  Star,
+  Terminal,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -23,6 +26,8 @@ interface AttemptLoad {
   caseId?: string;
   caseTitle?: string;
   elapsedSec?: number;
+  targetSteps?: number;
+  expectedTimeSec?: number;
   currentNode: SimNode;
   signalState: Record<string, string | boolean | number>;
 }
@@ -48,6 +53,10 @@ export function SimulationPage() {
   const [timeline, setTimeline] = useState<SimDebriefStep[]>([]);
   const [caseTitle, setCaseTitle] = useState("Simulasi Kasus");
   const [caseId, setCaseId] = useState<string | null>(null);
+  const [targetSteps, setTargetSteps] = useState<number | null>(null);
+  const [expectedTimeSec, setExpectedTimeSec] = useState<number | null>(null);
+  const [exitOpen, setExitOpen] = useState(false);
+  const [leaving, setLeaving] = useState(false);
 
   useLeaveGuard(!loading && result === null && completed === null);
 
@@ -65,12 +74,16 @@ export function SimulationPage() {
         setCompleted(debrief);
         setCaseId(debrief.caseId);
         setCaseTitle(debrief.caseTitle ?? "Simulasi Kasus");
+        setTargetSteps(debrief.targetSteps ?? null);
+        setExpectedTimeSec(debrief.expectedTimeSec ?? null);
         return;
       }
       setNode(res.currentNode);
       setSignals(res.signalState ?? {});
       setCaseId(res.caseId ?? null);
       setCaseTitle(res.caseTitle ?? "Simulasi Kasus");
+      setTargetSteps(res.targetSteps ?? null);
+      setExpectedTimeSec(res.expectedTimeSec ?? null);
       const elapsedSec = res.elapsedSec ?? 0;
       timerStart.current = Date.now() - elapsedSec * 1000;
       setElapsed(elapsedSec);
@@ -89,6 +102,15 @@ export function SimulationPage() {
     return () => clearInterval(t);
   }, [loading, result, completed]);
 
+  useEffect(() => {
+    if (!exitOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExitOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [exitOpen]);
+
   const submit = async (optionId: string) => {
     if (submitting || !node?.options) return;
     setSubmitting(true);
@@ -96,7 +118,10 @@ export function SimulationPage() {
     setHint(null);
     try {
       const chosen = node.options.find((o) => o.optionId === optionId);
-      const res = await api.post<SimSubmitResponse>(`/api/simulation/${attemptId}/submit`, { optionId });
+      const res = await api.post<SimSubmitResponse>(`/api/simulation/${attemptId}/submit`, {
+        optionId,
+        hintLevel: hint?.level ?? 0,
+      });
       const wasCorrect = !!res.wasCorrect;
       const step: SimDebriefStep = {
         step: timeline.length + 1,
@@ -105,7 +130,7 @@ export function SimulationPage() {
         nodeType: node.type,
         optionLabel: chosen?.label ?? "",
         wasCorrect,
-        hintLevel: hintCount,
+        hintLevel: hint?.level ?? 0,
         at: new Date().toISOString(),
       };
       setMoves((m) => m + 1);
@@ -140,7 +165,7 @@ export function SimulationPage() {
     try {
       const res = await api.post<{ level: number; text: string; fullAnswer: boolean }>(`/api/simulation/${attemptId}/hint`);
       setHint(res);
-      setHintCount((c) => c + 1);
+      setHintCount(res.level);
     } catch (e: any) {
       toast.error(e.message || "Gagal memuat hint.");
     } finally {
@@ -149,7 +174,19 @@ export function SimulationPage() {
   };
 
   const abandon = async () => {
-    await api.post(`/api/simulation/${attemptId}/abandon`);
+    setLeaving(true);
+    try {
+      await api.post(`/api/simulation/${attemptId}/abandon`);
+      navigate("/cases");
+    } catch (e: any) {
+      toast.error(e.message || "Gagal meninggalkan misi.");
+      setLeaving(false);
+    }
+  };
+
+  /** Keluar tanpa menutup misi: seluruh langkah sudah tersimpan di server. */
+  const saveAndExit = () => {
+    setExitOpen(false);
     navigate("/cases");
   };
 
@@ -207,17 +244,25 @@ export function SimulationPage() {
   const riskTone = !signalEntries.length ? "text-slate-300" : risk >= 60 ? "text-rose-300" : risk >= 30 ? "text-amber-300" : "text-emerald-300";
 
   // Terminal result screen
-  if (result) return <ResultScreen result={result} moves={moves} elapsed={elapsed} onRestart={restart} onExit={() => navigate("/cases")} />;
+  if (result) return (
+    <ResultScreen
+      result={result}
+      moves={moves}
+      elapsed={elapsed}
+      targetSteps={targetSteps}
+      expectedTimeSec={expectedTimeSec}
+      onRestart={restart}
+      onExit={() => navigate("/cases")}
+    />
+  );
 
   return (
     <div className="animate-fade-in">
       {/* Mission HUD */}
       <div className="mb-4">
         <div className="mb-3 flex items-center justify-between">
-          <Button asChild variant="ghost" size="sm" onClick={() => { void abandon(); }}>
-            <Link to="/cases">
-              <ArrowLeft className="h-4 w-4" /> Keluar
-            </Link>
+          <Button variant="ghost" size="sm" onClick={() => setExitOpen(true)}>
+            <ArrowLeft className="h-4 w-4" /> Keluar
           </Button>
           <span className="flex items-center gap-1.5 font-mono-tech text-[10px] font-bold tracking-widest text-emerald-600">
             <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" aria-hidden /> SIMULASI BERJALAN
@@ -232,7 +277,7 @@ export function SimulationPage() {
             <span className="shrink-0 font-mono-tech text-[10px] text-slate-400">{node.type === "ACTION" ? "AKSI" : "DIAGNOSIS"}</span>
           </div>
           <div className="grid grid-cols-5 divide-x divide-white/10 text-center">
-            <HudCell label="Langkah" value={String(moves)} />
+            <HudCell label="Langkah" value={targetSteps ? `${moves}/${targetSteps}` : String(moves)} />
             <HudCell label="Time" value={formatTime(elapsed)} />
             <HudCell label="Sinyal" value={String(signalEntries.length)} />
             <div className="px-2 py-2.5">
@@ -243,6 +288,74 @@ export function SimulationPage() {
           </div>
         </div>
       </div>
+
+      {exitOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm">
+          <div className="animate-fade-in-up w-full max-w-md overflow-hidden rounded-2xl border border-border bg-card shadow-lift">
+            <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
+              <div>
+                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-amber-600">
+                  Keluar dari misi
+                </div>
+                <h2 className="mt-0.5 font-display text-lg font-extrabold">Simpan progresmu?</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExitOpen(false)}
+                className="rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Tutup"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-2 px-5 py-4">
+              <p className="text-[12px] leading-relaxed text-muted-foreground">
+                Semua langkah dan sinyal sudah tersimpan otomatis. Kamu bisa melanjutkan misi ini kapan saja dari
+                halaman Kasus tanpa kehilangan progres.
+              </p>
+              <button
+                type="button"
+                onClick={saveAndExit}
+                disabled={leaving}
+                className="flex w-full items-center gap-3 rounded-xl border border-emerald-300/60 bg-emerald-50 p-3 text-left transition-colors hover:border-emerald-400 hover:bg-emerald-100 disabled:opacity-60"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500 text-white">
+                  <Save className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-bold text-emerald-900">Simpan &amp; keluar</span>
+                  <span className="block text-[10.5px] text-emerald-800">
+                    Misi tetap berjalan dan bisa dilanjutkan nanti.
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => void abandon()}
+                disabled={leaving}
+                className="flex w-full items-center gap-3 rounded-xl border border-rose-200 bg-rose-50/70 p-3 text-left transition-colors hover:border-rose-300 hover:bg-rose-50 disabled:opacity-60"
+              >
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-rose-500 text-white">
+                  <LogOut className="h-4 w-4" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[12.5px] font-bold text-rose-900">Tinggalkan misi</span>
+                  <span className="block text-[10.5px] text-rose-800">
+                    Akhiri misi ini dengan skor 0. Riwayatnya tetap tersimpan.
+                  </span>
+                </span>
+              </button>
+            </div>
+
+            <div className="flex justify-end border-t border-border bg-muted/30 px-5 py-3">
+              <Button variant="ghost" size="sm" onClick={() => setExitOpen(false)} disabled={leaving}>
+                Batal
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-3">
         <div className="space-y-5 lg:col-span-2">
@@ -342,7 +455,10 @@ export function SimulationPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Langkah diambil</span>
-                  <span className="font-mono-tech font-bold">{moves}</span>
+                  <span className="font-mono-tech font-bold">
+                    {moves}
+                    {targetSteps ? <span className="text-muted-foreground">/{targetSteps}</span> : null}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Akurasi langkah</span>
@@ -356,7 +472,10 @@ export function SimulationPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-muted-foreground">Waktu</span>
-                  <span className="font-mono-tech font-bold">{formatTime(elapsed)}</span>
+                  <span className="font-mono-tech font-bold">
+                    {formatTime(elapsed)}
+                    {expectedTimeSec ? <span className="text-muted-foreground"> / {formatTime(expectedTimeSec)}</span> : null}
+                  </span>
                 </div>
               </div>
               <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
@@ -413,10 +532,12 @@ const GRADE_META: Record<string, { label: string; head: string }> = {
   D: { label: "Perlu Latihan Lagi", head: "Misi Belum Sempurna" },
 };
 
-function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
+function ResultScreen({ result, moves, elapsed, targetSteps, expectedTimeSec, onRestart, onExit }: {
   result: { success: boolean; score: SimResult; xpGained: number; debrief?: SimDebriefStep[] };
   moves: number;
   elapsed: number;
+  targetSteps: number | null;
+  expectedTimeSec: number | null;
   onRestart: () => void;
   onExit: () => void;
 }) {
@@ -453,9 +574,10 @@ function ResultScreen({ result, moves, elapsed, onRestart, onExit }: {
           <div className="h-px bg-border" />
           <MetricRow label="Akurasi" value={`${Math.round(s.accuracy * 100)}%`} />
           <MetricRow label="Efisiensi" value={`${Math.round(s.efficiency * 100)}%`} />
+          <MetricRow label="Langkah" value={targetSteps ? `${moves} / ${targetSteps} target` : `${moves}`} />
           <MetricRow label="Waktu" value={formatTime(elapsed)} />
+          {expectedTimeSec ? <MetricRow label="Target waktu" value={formatTime(expectedTimeSec)} /> : null}
           <MetricRow label="Penalti hint" value={`-${s.hintPenalty} poin`} />
-          <MetricRow label="Total langkah" value={`${moves}`} />
           <div className="mt-1 flex items-center justify-between rounded-xl bg-primary/5 px-3 py-2.5">
             <span className="text-sm font-semibold">XP diperoleh</span>
             <span className="font-display text-lg font-extrabold text-primary">+{result.xpGained} XP</span>
@@ -529,6 +651,23 @@ function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRes
   const success = data.success === true;
   const abandoned = data.status === "ABANDONED";
   const accuracy = data.accuracy !== null ? Math.round(data.accuracy * 100) : null;
+  const moves = data.totalMoves ?? data.timeline.length;
+  const wrongMoves = data.wrongMoves ?? data.timeline.filter((s) => !s.wasCorrect).length;
+  const targetSteps = data.targetSteps ?? null;
+  const expectedTimeSec = data.expectedTimeSec ?? null;
+  const hintsUsed = data.hintsUsed ?? 0;
+  const extraSteps = targetSteps ? Math.max(0, moves - targetSteps) : null;
+  const timeDelta = expectedTimeSec && data.timeSec !== null ? data.timeSec - expectedTimeSec : null;
+
+  const verdict = abandoned
+    ? "Misi dihentikan sebelum selesai. Langkah yang sudah diambil tetap tercatat sebagai bahan evaluasi."
+    : success
+      ? extraSteps === 0 && (timeDelta ?? 0) <= 0
+        ? "Rute optimal: langkahmu seefisien solusi terbaik dan selesai di bawah target waktu."
+        : extraSteps === 0
+          ? `Rute sudah efisien, tetapi waktu ${formatTime(Math.abs(timeDelta ?? 0))} lebih lama dari target.`
+          : `Misi berhasil, tetapi ${extraSteps} langkah di atas rute optimal. Pelajari timeline untuk memangkas langkah.`
+      : "Misi belum berhasil. Bandingkan langkah berisiko di timeline dengan konsekuensi sinyal, lalu ulangi misi.";
 
   return (
     <div className="animate-fade-in-up mx-auto max-w-2xl pt-6">
@@ -565,7 +704,7 @@ function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRes
             </div>
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
               <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Skor</div>
               <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{Math.round(data.score ?? 0)}</div>
@@ -575,14 +714,31 @@ function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRes
               <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{accuracy !== null ? `${accuracy}%` : "—"}</div>
             </div>
             <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
+              <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Langkah</div>
+              <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">
+                {moves}
+                {targetSteps ? <span className="text-[11px] font-bold text-muted-foreground">/{targetSteps}</span> : null}
+              </div>
+            </div>
+            <div className="rounded-xl border border-white/60 bg-white/70 px-3 py-2 backdrop-blur-sm">
               <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-muted-foreground">Waktu</div>
               <div className="mt-0.5 font-display text-xl font-extrabold text-slate-900">{data.timeSec !== null ? formatTime(data.timeSec) : "—"}</div>
             </div>
           </div>
 
-          <p className="mt-3 text-[11.5px] leading-relaxed text-muted-foreground">
-            Debrief ini tersimpan permanen. Bandingkan langkahmu dengan solusi paling efisien, lalu ulangi misi untuk
-            memperbaiki akurasi dan waktu.
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <DebriefStat label="Hint dipakai" value={`${hintsUsed}`} tone={hintsUsed > 0 ? "warn" : "ok"} />
+            <DebriefStat label="Langkah berisiko" value={`${wrongMoves}`} tone={wrongMoves > 0 ? "bad" : "ok"} />
+            <DebriefStat label="Target langkah" value={targetSteps ? `${targetSteps}` : "—"} />
+            <DebriefStat
+              label="Target waktu"
+              value={expectedTimeSec ? formatTime(expectedTimeSec) : "—"}
+              tone={timeDelta !== null && timeDelta > 0 ? "warn" : undefined}
+            />
+          </div>
+
+          <p className="mt-3 rounded-xl border border-white/60 bg-white/60 px-3 py-2 text-[11.5px] leading-relaxed text-slate-700 backdrop-blur-sm">
+            {verdict}
           </p>
         </div>
 
@@ -597,6 +753,22 @@ function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRes
           </Button>
         </div>
       </Card>
+    </div>
+  );
+}
+
+function DebriefStat({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" | "bad" }) {
+  return (
+    <div className="rounded-lg border border-white/50 bg-white/50 px-2.5 py-1.5 backdrop-blur-sm">
+      <div className="font-mono-tech text-[8px] uppercase tracking-[0.12em] text-muted-foreground">{label}</div>
+      <div
+        className={cn(
+          "font-mono-tech text-[13px] font-extrabold",
+          tone === "bad" ? "text-rose-600" : tone === "warn" ? "text-amber-600" : tone === "ok" ? "text-emerald-600" : "text-slate-800"
+        )}
+      >
+        {value}
+      </div>
     </div>
   );
 }
