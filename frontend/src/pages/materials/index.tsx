@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, BookOpenText, CheckCircle2, Layers, Search, Sparkles } from "lucide-react";
+import { Link, useSearchParams } from "react-router-dom";
+import { ArrowRight, BookOpenText, CheckCircle2, Layers, Search, Sparkles, X } from "lucide-react";
 import { api } from "@/lib/api";
 import { getJalur } from "@/lib/learning-path";
 import { CardGridSkeleton, EmptyState } from "@/components/ui/feedback";
@@ -19,6 +19,8 @@ export function MaterialsPage() {
   const [materials, setMaterials] = useState<Material[] | null>(null);
   const [search, setSearch] = useState("");
   const [readFilter, setReadFilter] = useState<ReadFilter>("ALL");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const skillFilter = searchParams.get("skill");
 
   useEffect(() => {
     api
@@ -38,6 +40,15 @@ export function MaterialsPage() {
   const pct = total ? Math.round((completedCount / total) * 100) : 0;
   const jalur = getJalur();
   const q = search.trim().toLowerCase();
+  const skillName = skillFilter
+    ? materials.find((m) => m.skill.code === skillFilter)?.skill.name ?? skillFilter
+    : null;
+
+  const clearSkillFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("skill");
+    setSearchParams(next, { replace: true });
+  };
 
   const filtered = materials.filter((m) => {
     const matchSearch =
@@ -47,7 +58,8 @@ export function MaterialsPage() {
       m.skill.name.toLowerCase().includes(q);
     const matchRead =
       readFilter === "ALL" ? true : readFilter === "READ" ? m.completed : !m.completed;
-    return matchSearch && matchRead;
+    const matchSkill = !skillFilter || m.skill.code === skillFilter;
+    return matchSearch && matchRead && matchSkill;
   });
 
   const grouped = filtered.reduce<Record<string, { name: string; items: Material[] }>>((acc, m) => {
@@ -196,6 +208,18 @@ export function MaterialsPage() {
               </button>
             ))}
           </div>
+
+          {skillFilter && (
+            <button
+              type="button"
+              onClick={clearSkillFilter}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary transition-colors hover:bg-primary/10"
+              aria-label={`Hapus filter skill ${skillName}`}
+            >
+              Skill: {skillName}
+              <X className="h-3 w-3" />
+            </button>
+          )}
 
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

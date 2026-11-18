@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ArrowRight,
+  BookOpenText,
   CheckCircle2,
   Clock,
   Compass,
@@ -23,13 +24,14 @@ import { useAuth } from "@/lib/auth";
 import { PageLoader } from "@/components/ui/feedback";
 import { difficultyColor, difficultyLabel, cn, formatTime } from "@/lib/utils";
 import { skillImageUrl } from "@/lib/skill-media";
-import type { CaseDetail, CaseListItem, Difficulty } from "@/lib/types";
+import type { CaseDetail, CaseListItem, Difficulty, Material } from "@/lib/types";
 
 export function CaseDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
   const [caseDetail, setCaseDetail] = useState<CaseDetail | null>(null);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [starting, setStarting] = useState(false);
   const [prev, setPrev] = useState<CaseListItem | null>(null);
   const [next, setNext] = useState<CaseListItem | null>(null);
@@ -58,6 +60,26 @@ export function CaseDetailPage() {
       })
       .catch(() => {});
   }, [id]);
+
+  useEffect(() => {
+    const skillId = caseDetail?.skill.id;
+    if (!skillId) {
+      setMaterials([]);
+      return;
+    }
+    let alive = true;
+    api
+      .get<Material[]>(`/api/materials?skillId=${skillId}`)
+      .then((rows) => {
+        if (alive) setMaterials(rows.slice(0, 3));
+      })
+      .catch(() => {
+        if (alive) setMaterials([]);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [caseDetail?.skill.id]);
 
   const start = async () => {
     if (!id) return;
@@ -356,6 +378,54 @@ export function CaseDetailPage() {
               </div>
             </div>
           </section>
+
+          {materials.length > 0 && (
+            <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Materi pendukung
+                </div>
+                <Link
+                  to={`/materials?skill=${caseDetail.skill.code}`}
+                  className="text-[10px] font-bold text-primary hover:underline"
+                >
+                  Semua
+                </Link>
+              </div>
+              <ul className="mt-2.5 space-y-1.5">
+                {materials.map((m) => (
+                  <li key={m.id}>
+                    <Link
+                      to={`/materials/${m.id}`}
+                      className="group flex items-start gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/50"
+                    >
+                      {m.completed ? (
+                        <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-500" />
+                      ) : (
+                        <BookOpenText className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      )}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[11px] font-semibold leading-snug group-hover:text-primary">
+                          {m.title}
+                        </span>
+                        <span
+                          className={cn(
+                            "block text-[9px]",
+                            m.completed ? "text-emerald-600" : "text-muted-foreground"
+                          )}
+                        >
+                          {m.completed ? "Sudah dibaca" : "Belum dibaca"}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                Baca singkat dulu agar diagnosis di misi lebih terarah.
+              </p>
+            </section>
+          )}
 
           <section className="relative overflow-hidden rounded-2xl bg-[#0d1a2f] p-4 text-white shadow-soft">
             <div className="lab-grid-dark pointer-events-none absolute inset-0 opacity-60" aria-hidden />

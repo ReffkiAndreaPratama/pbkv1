@@ -104,7 +104,7 @@ router.get("/:id", async (req: any, res) => {
     title: c.title,
     scenario: c.scenario,
     difficulty: c.difficulty,
-    skill: { code: c.skill.code, name: c.skill.name },
+    skill: { id: c.skill.id, code: c.skill.code, name: c.skill.name },
     targetSteps: c.targetSteps,
     expectedTimeSec: c.expectedTimeSec,
     nodes,

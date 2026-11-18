@@ -18,6 +18,7 @@ import { useLeaveGuard } from "@/lib/use-leave-guard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { NextStepsPanel } from "@/components/simulation/next-steps";
 import { cn, difficultyColor, difficultyLabel, formatTime } from "@/lib/utils";
 import type { SimNode, SimSubmitResponse, SimResult, CaseOption, SimDebriefStep, SimDebrief } from "@/lib/types";
 
@@ -246,7 +247,6 @@ export function SimulationPage() {
   if (completed) {
     return <CompletedDebrief data={completed} onRestart={restart} onExit={() => navigate("/cases")} />;
   }
-
   if (!node) return null;
 
   const signalEntries = Object.entries(signals);
@@ -261,6 +261,7 @@ export function SimulationPage() {
   if (result) return (
     <ResultScreen
       result={result}
+      attemptId={attemptId ?? null}
       moves={moves}
       elapsed={elapsed}
       targetSteps={targetSteps}
@@ -552,8 +553,9 @@ const GRADE_META: Record<string, { label: string; head: string }> = {
   D: { label: "Perlu Latihan Lagi", head: "Misi Belum Sempurna" },
 };
 
-function ResultScreen({ result, moves, elapsed, targetSteps, expectedTimeSec, onRestart, onExit }: {
+function ResultScreen({ result, attemptId, moves, elapsed, targetSteps, expectedTimeSec, onRestart, onExit }: {
   result: { success: boolean; score: SimResult; xpGained: number; debrief?: SimDebriefStep[] };
+  attemptId: string | null;
   moves: number;
   elapsed: number;
   targetSteps: number | null;
@@ -605,6 +607,8 @@ function ResultScreen({ result, moves, elapsed, targetSteps, expectedTimeSec, on
         </div>
 
         <DebriefTimeline steps={debrief} />
+
+        {attemptId && <NextStepsPanel attemptId={attemptId} />}
 
         <div className="flex gap-2 px-6 pb-6">
           <Button className="flex-1" onClick={onRestart}>
@@ -763,6 +767,8 @@ function CompletedDebrief({ data, onRestart, onExit }: { data: SimDebrief; onRes
         </div>
 
         <DebriefTimeline steps={data.timeline} />
+
+        <NextStepsPanel attemptId={data.id} />
 
         <div className="flex gap-2 px-6 py-5">
           <Button className="flex-1" onClick={onRestart}>

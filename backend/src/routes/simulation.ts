@@ -4,6 +4,7 @@ import { requireAuth } from "../middleware/auth";
 import { updateMasteryFromSimulation } from "../lib/adaptive";
 import { scoreSimulation, type SimScoringInput } from "../lib/scoring";
 import { HINT_MAX_LEVEL, buildSimulationHint } from "../lib/hint";
+import { pickNextCase } from "../lib/recommend";
 import { awardSimSuccess, awardSimFail, checkAchievements } from "../lib/gamification";
 
 const router = Router();
@@ -185,6 +186,67 @@ router.get("/:attemptId/debrief", async (req: any, res) => {
     expectedTimeSec: attempt.case.expectedTimeSec,
     signalState: attempt.signalState ?? {},
     timeline: await buildDebrief(attempt.id, attempt.caseId),
+  });
+});
+
+/**
+ * Rekomendasi lanjutan setelah misi: materi pendukung, kasus berikutnya,
+ * dan progres penguasaan skill. Dipakai panel "Langkah berikutnya" pada debrief.
+ */
+router.get("/:attemptId/recommendations", async (req: any, res) => {
+  const attempt = await prisma.simulationAttempt.findUnique({
+    where: { id: req.params.attemptId },
+    include: { case: { include: { skill: true } } },
+  });
+  if (!attempt || attempt.userId !== req.user!.id) {
+    res.status(404).json({ error: "Attempt not found." });
+    return;
+  }
+
+  const userId = req.user!.id;
+  const skillId = attempt.case.skillId;
+
+  const [materials, reads, mastery, caseRows] = await Promise.all([
+    prisma.material.findMany({
+      where: { skillId, isActive: true },
+      select: { id: true, title: true, summary: true, order: true },
+      orderBy: { order: "asc" },
+    }),
+    prisma.materialRead.findMany({ where: { userId }, select: { materialId: true } }),
+    prisma.skillMastery.findUnique({ where: { userId_skillId: { userId, skillId } } }),
+    prisma.caseModel.findMany({
+      where: { skillId, isActive: true },
+      select: { id: true, title: true, difficulty: true, targetSteps: true, order: true },
+      orderBy: { order: "asc" },
+    }),
+  ]);
+
+  const readSet = new Set(reads.map((r) => r.materialId));
+  const masteryValue = mastery?.mastery ?? 0;
+
+  // Materi yang belum dibaca tampil lebih dulu agar loop belajar berlanjut.
+  const rankedMaterials = [...materials]
+    .sort((a, b) => Number(readSet.has(a.id)) - Number(readSet.has(b.id)) || a.order - b.order)
+    .slice(0, 3)
+    .map((m) => ({ ...m, completed: readSet.has(m.id) }));
+
+  const candidates = caseRows.map((c) => ({
+    ...c,
+    locked: (c.difficulty === "HARD" && masteryValue < 0.4) || (c.difficulty === "MEDIUM" && masteryValue < 0.25),
+  }));
+  const nextCase = pickNextCase(
+    { id: attempt.caseId, difficulty: attempt.case.difficulty },
+    candidates,
+    { escalate: attempt.success !== false }
+  );
+
+  res.json({
+    skill: { id: skillId, code: attempt.case.skill.code, name: attempt.case.skill.name },
+    mastery: Math.round(masteryValue * 100),
+    materials: rankedMaterials,
+    totalMaterials: materials.length,
+    completedMaterials: materials.filter((m) => readSet.has(m.id)).length,
+    nextCase,
   });
 });
 

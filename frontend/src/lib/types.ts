@@ -84,7 +84,7 @@ export interface CaseDetail {
   title: string;
   scenario: string;
   difficulty: Difficulty;
-  skill: { code: string; name: string };
+  skill: { id?: string; code: string; name: string };
   targetSteps: number;
   expectedTimeSec: number;
   nodes: CaseNode[];
@@ -139,6 +139,34 @@ export interface SimDebrief {
   expectedTimeSec: number;
   signalState: Record<string, string | boolean | number>;
   timeline: SimDebriefStep[];
+}
+
+export interface RecMaterial {
+  id: string;
+  title: string;
+  summary: string;
+  order: number;
+  completed: boolean;
+}
+
+export interface RecNextCase {
+  id: string;
+  title: string;
+  difficulty: Difficulty;
+  targetSteps: number;
+  order: number;
+  locked: boolean;
+  reason: string;
+}
+
+export interface SimRecommendations {
+  skill: { id: string; code: string; name: string };
+  /** Penguasaan skill dalam persen (0-100). */
+  mastery: number;
+  materials: RecMaterial[];
+  totalMaterials: number;
+  completedMaterials: number;
+  nextCase: RecNextCase | null;
 }
 
 export interface SimHistoryItem {
