@@ -15,6 +15,7 @@ import {
   Route,
   ShieldAlert,
   Sparkles,
+  Star,
   Target,
   Wrench,
   type LucideIcon,
@@ -22,7 +23,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PageLoader } from "@/components/ui/feedback";
-import { difficultyColor, difficultyLabel, cn, formatTime } from "@/lib/utils";
+import { difficultyColor, difficultyLabel, cn, formatDate, formatTime } from "@/lib/utils";
 import { skillImageUrl } from "@/lib/skill-media";
 import type { CaseDetail, CaseListItem, Difficulty, Material } from "@/lib/types";
 
@@ -95,6 +96,7 @@ export function CaseDetailPage() {
   if (!caseDetail) return <PageLoader />;
 
   const bestPath = caseDetail.nodes.filter((n) => n.isOnBestPath);
+  const stats = caseDetail.stats ?? null;
   const active = user?.profile?.pretestDone;
   const inProgress = !!caseDetail.activeAttemptId;
   const activeElapsed = caseDetail.activeStartedAt
@@ -379,6 +381,110 @@ export function CaseDetailPage() {
             </div>
           </section>
 
+          {stats && (
+            <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Rekor misi
+                </div>
+                <span className="rounded-full bg-muted px-2 py-0.5 font-mono-tech text-[9px] font-bold text-muted-foreground">
+                  {stats.attempts}x dicoba
+                </span>
+              </div>
+
+              {stats.attempts === 0 ? (
+                <p className="mt-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                  Belum ada catatan. Skor, waktu terbaik, dan debrief akan muncul di sini setelah misi pertamamu.
+                </p>
+              ) : (
+                <>
+                  <div className="mt-3 flex items-center gap-3">
+                    <div
+                      className={cn(
+                        "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl font-display text-lg font-extrabold text-white",
+                        stats.bestScore != null ? "bg-slate-900" : "bg-slate-300"
+                      )}
+                    >
+                      {stats.bestGrade ?? "—"}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-display text-xl font-extrabold leading-none">
+                        {stats.bestScore ?? "—"}
+                        <span className="ml-1 text-[9px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                          skor terbaik
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-0.5">
+                        {[1, 2, 3, 4].map((i) => (
+                          <Star
+                            key={i}
+                            className={cn(
+                              "h-3 w-3",
+                              (stats.bestStars ?? 0) >= i ? "fill-amber-400 text-amber-400" : "text-muted"
+                            )}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-3 gap-2">
+                    <MiniStat label="Sukses" value={`${stats.successes}/${stats.attempts}`} />
+                    <MiniStat label="Waktu" value={stats.bestTimeSec ? formatTime(stats.bestTimeSec) : "—"} />
+                    <MiniStat label="Mastery" value={`${stats.mastery}%`} />
+                  </div>
+
+                  {stats.lastAttemptId && (
+                    <Link
+                      to={`/simulation/${stats.lastAttemptId}`}
+                      className="mt-2.5 inline-flex items-center gap-1 text-[10.5px] font-bold text-primary hover:underline"
+                    >
+                      Lihat debrief terakhir <ArrowRight className="h-3 w-3" />
+                    </Link>
+                  )}
+
+                  {stats.history.length > 0 && (
+                    <ul className="mt-2.5 space-y-1 border-t border-border/60 pt-2">
+                      {stats.history.slice(0, 3).map((h) => {
+                        const abandoned = h.status === "ABANDONED";
+                        const passed = h.success === true;
+                        return (
+                          <li key={h.id}>
+                            <Link
+                              to={`/simulation/${h.id}`}
+                              className="flex items-center justify-between gap-2 rounded-lg px-1 py-1 text-[10px] transition-colors hover:bg-muted/50"
+                            >
+                              <span className="inline-flex items-center gap-1.5">
+                                <span
+                                  className={cn(
+                                    "h-1.5 w-1.5 rounded-full",
+                                    passed ? "bg-emerald-500" : abandoned ? "bg-amber-400" : "bg-rose-500"
+                                  )}
+                                />
+                                <span
+                                  className={cn(
+                                    "font-semibold",
+                                    passed ? "text-emerald-700" : abandoned ? "text-amber-700" : "text-rose-700"
+                                  )}
+                                >
+                                  {abandoned ? "Ditinggalkan" : passed ? "Berhasil" : "Belum berhasil"}
+                                </span>
+                              </span>
+                              <span className="font-mono-tech text-muted-foreground">
+                                {!abandoned && h.score != null ? `${Math.round(h.score)} · ` : ""}
+                                {formatDate(h.completedAt)}
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
+              )}
+            </section>
+          )}
+
           {materials.length > 0 && (
             <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft">
               <div className="flex items-center justify-between">
@@ -535,6 +641,15 @@ function StepCard({
       </div>
       <div className="mt-2 text-[12px] font-bold">{title}</div>
       <p className="mt-1 text-[10.5px] leading-relaxed text-muted-foreground">{description}</p>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/40 px-2 py-1.5">
+      <div className="font-mono-tech text-[8px] uppercase tracking-[0.12em] text-muted-foreground">{label}</div>
+      <div className="mt-0.5 font-mono-tech text-[11px] font-extrabold text-slate-800">{value}</div>
     </div>
   );
 }

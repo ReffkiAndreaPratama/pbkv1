@@ -15,7 +15,7 @@ import {
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PageLoader } from "@/components/ui/feedback";
-import { cn } from "@/lib/utils";
+import { cn, difficultyColor, difficultyLabel } from "@/lib/utils";
 import { embedVideoUrl } from "@/lib/media";
 import type { Material } from "@/lib/types";
 
@@ -186,6 +186,7 @@ export function MaterialDetailPage() {
   const [readAt, setReadAt] = useState<string | null>(null);
   const [prev, setPrev] = useState<Material | null>(null);
   const [next, setNext] = useState<Material | null>(null);
+  const [progress, setProgress] = useState<{ read: number; total: number } | null>(null);
   const [scrollPct, setScrollPct] = useState(0);
 
   useEffect(() => {
@@ -197,6 +198,7 @@ export function MaterialDetailPage() {
       .then((m) => {
         setMaterial(m);
         setReadAt(m.readAt ?? null);
+        setProgress(m.skillProgress ?? null);
       })
       .catch(() => setNotFound(true));
   }, [id]);
@@ -242,6 +244,9 @@ export function MaterialDetailPage() {
     if (!id) return;
     try {
       await api.post(`/api/materials/${id}/read`);
+      if (!readAt) {
+        setProgress((p) => (p ? { ...p, read: Math.min(p.total, p.read + 1) } : p));
+      }
       setReadAt(new Date().toISOString());
       toast.success("Materi selesai dibaca! Konsepmu naik. 🚀");
     } catch {
@@ -271,6 +276,7 @@ export function MaterialDetailPage() {
   const readMinutes = Math.max(1, Math.round(words / 200));
   const embed = embedVideoUrl(material.videoUrl);
   const links = material.links ?? [];
+  const relatedCases = material.relatedCases ?? [];
   const isRead = Boolean(readAt);
 
   return (
@@ -633,6 +639,52 @@ export function MaterialDetailPage() {
             </div>
           </section>
 
+          {relatedCases.length > 0 && (
+            <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft">
+              <div className="flex items-center justify-between">
+                <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+                  Kasus terkait
+                </div>
+                <Link
+                  to={`/cases?skill=${material.skill.code}`}
+                  className="text-[10px] font-bold text-primary hover:underline"
+                >
+                  Semua
+                </Link>
+              </div>
+              <ul className="mt-2.5 space-y-1.5">
+                {relatedCases.slice(0, 3).map((c) => (
+                  <li key={c.id}>
+                    <Link
+                      to={`/cases/${c.id}`}
+                      className="group flex items-start gap-2 rounded-lg px-1 py-1 transition-colors hover:bg-muted/50"
+                    >
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-slate-900 font-mono-tech text-[8px] font-bold text-emerald-300">
+                        {c.targetSteps}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block line-clamp-2 text-[11px] font-semibold leading-snug group-hover:text-primary">
+                          {c.title}
+                        </span>
+                        <span
+                          className={cn(
+                            "mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[8px] font-bold",
+                            difficultyColor(c.difficulty)
+                          )}
+                        >
+                          {difficultyLabel(c.difficulty)}
+                        </span>
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[10px] leading-relaxed text-muted-foreground">
+                Baca teorinya, lalu uji pemahaman di simulasi kasus.
+              </p>
+            </section>
+          )}
+
           <section className="rounded-2xl border border-border/70 bg-card p-4 shadow-soft">
             <div className="font-mono-tech text-[9.5px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
               Modul ini
@@ -655,6 +707,24 @@ export function MaterialDetailPage() {
                 </span>
               </div>
             </div>
+            {progress && progress.total > 0 && (
+              <div className="mt-2">
+                <div className="flex items-center justify-between text-[9.5px] font-semibold text-muted-foreground">
+                  <span>Progres skill {material.skill.code}</span>
+                  <span className="font-mono-tech font-bold text-slate-700">
+                    {progress.read}/{progress.total}
+                  </span>
+                </div>
+                <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{
+                      width: `${Math.max(2, Math.round((progress.read / progress.total) * 100))}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
             <Link
               to="/materials"
               className="mt-3 inline-flex items-center gap-1 text-[10.5px] font-bold text-primary hover:underline"

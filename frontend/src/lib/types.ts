@@ -79,6 +79,31 @@ export interface CaseNode {
   options?: CaseOption[];
 }
 
+export interface CaseHistoryRow {
+  id: string;
+  status: string;
+  success: boolean | null;
+  score: number | null;
+  accuracy: number | null;
+  timeSec: number;
+  hintsUsed: number;
+  completedAt: string | null;
+}
+
+export interface CaseStats {
+  attempts: number;
+  successes: number;
+  bestScore: number | null;
+  bestGrade: string | null;
+  bestStars: number | null;
+  bestTimeSec: number | null;
+  mastery: number;
+  lastAttemptId: string | null;
+  lastStatus: string | null;
+  lastCompletedAt: string | null;
+  history: CaseHistoryRow[];
+}
+
 export interface CaseDetail {
   id: string;
   title: string;
@@ -90,6 +115,7 @@ export interface CaseDetail {
   nodes: CaseNode[];
   activeAttemptId?: string | null;
   activeStartedAt?: string | null;
+  stats?: CaseStats;
 }
 
 export interface SimNode {
@@ -314,6 +340,8 @@ export interface Material {
   links?: MaterialLink[] | null;
   completed: boolean;
   readAt?: string | null;
+  relatedCases?: { id: string; title: string; difficulty: Difficulty; targetSteps: number }[];
+  skillProgress?: { read: number; total: number };
   skill: { id: string; code: string; name: string };
 }
 

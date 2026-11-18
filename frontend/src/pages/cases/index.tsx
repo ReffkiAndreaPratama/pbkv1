@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ArrowRight,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   ShieldAlert,
   Sparkles,
   TrendingUp,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { api } from "@/lib/api";
@@ -42,6 +43,8 @@ export function CasesPage() {
   const [search, setSearch] = useState("");
   const [diff, setDiff] = useState<"ALL" | Difficulty>("ALL");
   const [avail, setAvail] = useState<Availability>("ALL");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const skillFilter = searchParams.get("skill");
 
   useEffect(() => {
     api
@@ -68,10 +71,19 @@ export function CasesPage() {
   if (!cases) return <CardGridSkeleton groups={3} perGroup={2} />;
 
   const q = search.trim().toLowerCase();
+  const skillName = skillFilter
+    ? cases.find((c) => c.skill.code === skillFilter)?.skill.name ?? skillFilter
+    : null;
+  const clearSkillFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("skill");
+    setSearchParams(next, { replace: true });
+  };
   const visible = cases.filter(
     (c) =>
       (diff === "ALL" || c.difficulty === diff) &&
       (avail === "ALL" ? true : avail === "OPEN" ? !c.locked : c.locked) &&
+      (!skillFilter || c.skill.code === skillFilter) &&
       (!q || c.title.toLowerCase().includes(q) || c.skill.name.toLowerCase().includes(q))
   );
   const recommended =
@@ -373,6 +385,18 @@ export function CasesPage() {
               </button>
             ))}
           </div>
+
+          {skillFilter && (
+            <button
+              type="button"
+              onClick={clearSkillFilter}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-2.5 py-1 text-[11px] font-bold text-primary transition-colors hover:bg-primary/10"
+              aria-label={`Hapus filter skill ${skillName}`}
+            >
+              Skill: {skillName}
+              <X className="h-3 w-3" />
+            </button>
+          )}
 
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />

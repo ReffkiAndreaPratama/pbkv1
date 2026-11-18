@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../db";
 import { requireAuth } from "../middleware/auth";
 import { recommendPath, loadMastery, allowedDifficulty, tierOf } from "../lib/adaptive";
+import { gradeOf, starsOf } from "../lib/scoring";
 import { touchStreak } from "../lib/gamification";
 
 const router = Router();
@@ -99,6 +100,37 @@ router.get("/:id", async (req: any, res) => {
     orderBy: { startedAt: "desc" },
     select: { id: true, startedAt: true },
   });
+
+  const [pastAttempts, mastery] = await Promise.all([
+    prisma.simulationAttempt.findMany({
+      where: { userId: req.user!.id, caseId: c.id, status: { not: "IN_PROGRESS" } },
+      orderBy: [{ completedAt: "desc" }, { startedAt: "desc" }],
+      select: {
+        id: true,
+        status: true,
+        success: true,
+        score: true,
+        accuracy: true,
+        timeSec: true,
+        hintsUsed: true,
+        completedAt: true,
+      },
+    }),
+    prisma.skillMastery.findUnique({
+      where: { userId_skillId: { userId: req.user!.id, skillId: c.skillId } },
+    }),
+  ]);
+
+  const scored = pastAttempts.filter((a) => a.score !== null);
+  let best: (typeof pastAttempts)[number] | null = null;
+  for (const a of scored) {
+    if (!best || (a.score ?? 0) > (best.score ?? 0)) best = a;
+  }
+  const successes = pastAttempts.filter((a) => a.success === true);
+  const bestTime = successes
+    .filter((a) => a.timeSec > 0)
+    .reduce<number | null>((min, a) => (min === null || a.timeSec < min ? a.timeSec : min), null);
+
   res.json({
     id: c.id,
     title: c.title,
@@ -110,6 +142,28 @@ router.get("/:id", async (req: any, res) => {
     nodes,
     activeAttemptId: active?.id ?? null,
     activeStartedAt: active?.startedAt ?? null,
+    stats: {
+      attempts: pastAttempts.length,
+      successes: successes.length,
+      bestScore: best?.score ?? null,
+      bestGrade: best?.score != null ? gradeOf(best.score) : null,
+      bestStars: best?.score != null ? starsOf(best.score) : null,
+      bestTimeSec: bestTime,
+      mastery: Math.round((mastery?.mastery ?? 0) * 100),
+      lastAttemptId: pastAttempts[0]?.id ?? null,
+      lastStatus: pastAttempts[0]?.status ?? null,
+      lastCompletedAt: pastAttempts[0]?.completedAt ?? null,
+      history: pastAttempts.slice(0, 4).map((a) => ({
+        id: a.id,
+        status: a.status,
+        success: a.success,
+        score: a.score,
+        accuracy: a.accuracy,
+        timeSec: a.timeSec,
+        hintsUsed: a.hintsUsed,
+        completedAt: a.completedAt,
+      })),
+    },
   });
 });
 

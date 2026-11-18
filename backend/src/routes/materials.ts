@@ -18,8 +18,28 @@ router.get("/", async (req: any, res) => {
 router.get("/:id", async (req: any, res) => {
   const m = await prisma.material.findUnique({ where: { id: req.params.id }, include: { skill: true } });
   if (!m) { res.status(404).json({ error: "Material not found." }); return; }
-  const read = await prisma.materialRead.findFirst({ where: { userId: req.user!.id, materialId: m.id } });
-  res.json({ ...m, completed: !!read, readAt: read?.readAt ?? null });
+  const userId = req.user!.id;
+  const [read, relatedCases, skillTotal, skillReads] = await Promise.all([
+    prisma.materialRead.findFirst({ where: { userId, materialId: m.id } }),
+    prisma.caseModel.findMany({
+      where: { skillId: m.skillId, isActive: true },
+      select: { id: true, title: true, difficulty: true, targetSteps: true },
+      orderBy: [{ order: "asc" }],
+      take: 4,
+    }),
+    prisma.material.count({ where: { skillId: m.skillId, isActive: true } }),
+    prisma.materialRead.findMany({
+      where: { userId, material: { skillId: m.skillId, isActive: true } },
+      select: { materialId: true },
+    }),
+  ]);
+  res.json({
+    ...m,
+    completed: !!read,
+    readAt: read?.readAt ?? null,
+    relatedCases,
+    skillProgress: { read: skillReads.length, total: skillTotal },
+  });
 });
 
 router.post("/:id/read", async (req: any, res) => {
