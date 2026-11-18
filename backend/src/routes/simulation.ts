@@ -3,28 +3,28 @@ import prisma from "../db";
 import { requireAuth } from "../middleware/auth";
 import { updateMasteryFromSimulation } from "../lib/adaptive";
 import { scoreSimulation, type SimScoringInput } from "../lib/scoring";
-import { HINT_MAX_LEVEL, buildHintText } from "../lib/hint";
+import { HINT_MAX_LEVEL, buildSimulationHint } from "../lib/hint";
 import { awardSimSuccess, awardSimFail, checkAchievements } from "../lib/gamification";
 
 const router = Router();
 router.use(requireAuth);
+
+async function resolveCurrentNode(attemptId: string, caseId: string) {
+  const lastStep = await prisma.simulationStep.findFirst({ where: { attemptId }, orderBy: { at: "desc" } });
+  if (!lastStep) return prisma.caseNode.findFirst({ where: { caseId, type: "START" } });
+  const lastOption = await prisma.caseOption.findFirst({
+    where: { caseId, label: lastStep.optionLabel },
+    include: { nextNode: true },
+  });
+  return lastOption?.nextNode ?? prisma.caseNode.findFirst({ where: { caseId, type: "START" } });
+}
 
 async function currentNodeWithOptions(
   attemptId: string,
   caseId: string,
   signals: Record<string, string | boolean | number>
 ) {
-  const lastStep = await prisma.simulationStep.findFirst({ where: { attemptId }, orderBy: { at: "desc" } });
-  let node;
-  if (!lastStep) {
-    node = await prisma.caseNode.findFirst({ where: { caseId, type: "START" } });
-  } else {
-    const lastOption = await prisma.caseOption.findFirst({
-      where: { caseId, label: lastStep.optionLabel },
-      include: { nextNode: true },
-    });
-    node = lastOption?.nextNode ?? (await prisma.caseNode.findFirst({ where: { caseId, type: "START" } }));
-  }
+  const node = await resolveCurrentNode(attemptId, caseId);
   if (!node) return null;
   const options = await prisma.caseOption.findMany({ where: { nodeId: node.id }, include: { nextNode: true } });
   return {
@@ -149,6 +149,9 @@ router.get("/:attemptId", async (req: any, res) => {
     skill: attempt.case.skill,
     targetSteps: attempt.case.targetSteps,
     expectedTimeSec: attempt.case.expectedTimeSec,
+    totalMoves: attempt.totalMoves,
+    wrongMoves: attempt.wrongMoves,
+    hintsUsed: attempt.hintsUsed,
     elapsedSec: Math.round((Date.now() - attempt.startedAt.getTime()) / 1000),
     currentNode: node,
     signalState: signals,
@@ -292,17 +295,33 @@ router.post("/:attemptId/hint", async (req: any, res) => {
   if (!attempt || attempt.userId !== req.user!.id || attempt.status !== "IN_PROGRESS") {
     res.status(404).json({ error: "Active attempt not found." }); return;
   }
-  const lastStep = await prisma.simulationStep.findFirst({ where: { attemptId: req.params.attemptId }, orderBy: { at: "desc" } });
-  const currentNode = lastStep?.nodeKey ?? "start";
-  const stepsAtNode = await prisma.simulationStep.count({ where: { attemptId: req.params.attemptId, nodeKey: currentNode } });
   const currentLevel = attempt.hintsUsed;
   if (currentLevel >= HINT_MAX_LEVEL) { res.json({ level: currentLevel, text: "Kamu sudah mencapai level hint maksimum. Gunakan tombol 'Jawab Langsung' jika benar-benar stuck.", maxed: true }); return; }
 
-  const ctx = { nodeText: "", attemptsAtNode: stepsAtNode, hintsRequested: currentLevel, caseTitle: attempt.case.title };
-  const { level, text } = buildHintText(ctx);
-  const finalLevel = Math.min(level, currentLevel + 1);
+  const node = await resolveCurrentNode(attempt.id, attempt.caseId);
+  if (!node) { res.status(500).json({ error: "Could not determine current node." }); return; }
+
+  const signals = (attempt.signalState ?? {}) as Record<string, string | boolean | number>;
+  const options = await prisma.caseOption.findMany({ where: { nodeId: node.id } });
+  const hintOptions = options.map((o) => {
+    const cond = o.condition as { signal?: string; equals?: string | boolean | number } | null;
+    const available = !cond?.signal || signals[cond.signal] === cond.equals;
+    return { label: o.label, isCorrect: o.isCorrect, feedbackText: o.feedbackText, available };
+  });
+  const stepsAtNode = await prisma.simulationStep.count({ where: { attemptId: attempt.id, nodeKey: node.nodeKey } });
+
+  const { level, text } = buildSimulationHint({
+    caseTitle: attempt.case.title,
+    nodeType: node.type,
+    nodeText: node.text,
+    nodeDetail: node.detail,
+    options: hintOptions,
+    attemptsAtNode: stepsAtNode,
+    hintsRequested: currentLevel,
+  }, currentLevel + 1);
+  const finalLevel = level;
   const fullAnswerGiven = finalLevel === 4 || currentLevel + 1 >= HINT_MAX_LEVEL;
-  await prisma.simulationAttempt.update({ where: { id: req.params.attemptId }, data: { hintsUsed: finalLevel, fullAnswerGiven: fullAnswerGiven ? true : attempt.fullAnswerGiven } });
+  await prisma.simulationAttempt.update({ where: { id: attempt.id }, data: { hintsUsed: finalLevel, fullAnswerGiven: fullAnswerGiven ? true : attempt.fullAnswerGiven } });
 
   res.json({ level: finalLevel, text, fullAnswer: finalLevel === 4 });
 });

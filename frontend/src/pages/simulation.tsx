@@ -28,6 +28,9 @@ interface AttemptLoad {
   elapsedSec?: number;
   targetSteps?: number;
   expectedTimeSec?: number;
+  totalMoves?: number;
+  wrongMoves?: number;
+  hintsUsed?: number;
   currentNode: SimNode;
   signalState: Record<string, string | boolean | number>;
 }
@@ -66,6 +69,14 @@ export function SimulationPage() {
   const load = useCallback(async () => {
     setLoading(true);
     setCompleted(null);
+    setResult(null);
+    setHint(null);
+    setFeedback(null);
+    setTimeline([]);
+    setMoves(0);
+    setWrongCount(0);
+    setHintCount(0);
+    setExitOpen(false);
     try {
       const res = await api.get<AttemptLoad>(`/api/simulation/${attemptId}`);
       if (res.status !== "IN_PROGRESS" || !res.currentNode) {
@@ -84,6 +95,9 @@ export function SimulationPage() {
       setCaseTitle(res.caseTitle ?? "Simulasi Kasus");
       setTargetSteps(res.targetSteps ?? null);
       setExpectedTimeSec(res.expectedTimeSec ?? null);
+      setMoves(res.totalMoves ?? 0);
+      setWrongCount(res.wrongMoves ?? 0);
+      setHintCount(res.hintsUsed ?? 0);
       const elapsedSec = res.elapsedSec ?? 0;
       timerStart.current = Date.now() - elapsedSec * 1000;
       setElapsed(elapsedSec);
@@ -384,10 +398,16 @@ export function SimulationPage() {
           <div className="flex items-center justify-between rounded-2xl border border-amber-300/40 bg-amber-50/70 p-3">
             <div className="flex items-center gap-2 text-sm">
               <Lightbulb className="h-4 w-4 text-amber-500" />
-              <span className="text-amber-800">Buntu? Gunakan hint bertahap.</span>
+              <span className="text-amber-800">Buntu? Hint bertahap — setiap hint menurunkan skor akhir.</span>
             </div>
-            <Button variant="outline" size="sm" className="border-amber-300 text-amber-700 hover:bg-amber-100" onClick={() => void requestHint()} disabled={hinting}>
-              💡 Petunjuk
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-amber-300 text-amber-700 hover:bg-amber-100"
+              onClick={() => void requestHint()}
+              disabled={hinting || hintCount >= 4}
+            >
+              💡 {hintCount >= 4 ? "Hint habis" : "Petunjuk"}
             </Button>
           </div>
 
