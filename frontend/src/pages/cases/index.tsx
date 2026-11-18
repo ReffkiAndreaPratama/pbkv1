@@ -7,6 +7,7 @@ import {
   History,
   Lock,
   Play,
+  RotateCcw,
   Search,
   ShieldAlert,
   Sparkles,
@@ -77,6 +78,7 @@ export function CasesPage() {
     visible.find((c) => !c.locked && c.tries === 0) ?? visible.find((c) => !c.locked) ?? null;
   const jalur = getJalur();
   const openPct = stats.total ? Math.round((stats.open / stats.total) * 100) : 0;
+  const activeCases = cases.filter((c) => c.activeAttemptId && !c.locked);
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -187,6 +189,65 @@ export function CasesPage() {
         <QuickStat icon={Lock} label="Terkunci" value={`${stats.locked}`} hint="naikkan mastery" tone="amber" />
         <QuickStat icon={TrendingUp} label="Percobaan" value={`${stats.tries}`} hint={`${stats.solved} kasus pernah benar`} tone="blue" />
       </section>
+
+      {/* ---------------------------------------------------------- resume */}
+      {activeCases.length > 0 && (
+        <section>
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="font-mono-tech text-[10px] font-bold uppercase tracking-[0.18em] text-amber-600">
+                Misi berjalan
+              </div>
+              <h2 className="mt-0.5 font-display text-xl font-extrabold">Lanjutkan dari langkah terakhir</h2>
+            </div>
+            <span className="text-[11px] font-semibold text-muted-foreground">
+              Progres dan sinyal tersimpan otomatis
+            </span>
+          </div>
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+            {activeCases.slice(0, 3).map((c) => {
+              const elapsed = c.activeStartedAt
+                ? Math.max(0, Math.round((Date.now() - new Date(c.activeStartedAt).getTime()) / 1000))
+                : null;
+              return (
+                <Link
+                  key={c.id}
+                  to={`/simulation/${c.activeAttemptId}`}
+                  className="group relative overflow-hidden rounded-2xl border border-amber-200/80 bg-gradient-to-br from-amber-50 to-card p-4 shadow-soft transition-all hover:-translate-y-0.5 hover:border-amber-300 hover:shadow-lift"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-400/20 text-amber-700 ring-1 ring-amber-300/60">
+                      <RotateCcw className="h-4 w-4" />
+                    </span>
+                    <span className="rounded-full bg-amber-400/15 px-2 py-0.5 font-mono-tech text-[8.5px] font-bold uppercase tracking-[0.14em] text-amber-700">
+                      Berlangsung
+                    </span>
+                  </div>
+                  <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                    <span className="font-mono-tech text-[9px] font-bold uppercase tracking-widest text-violet-600">
+                      {c.skill.code}
+                    </span>
+                    <span className={cn("rounded-full px-1.5 py-0.5 text-[8.5px] font-bold", difficultyColor(c.difficulty))}>
+                      {difficultyLabel(c.difficulty)}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 line-clamp-2 text-[12.5px] font-bold leading-snug">{c.title}</div>
+                  <div className="mt-2.5 flex items-center justify-between border-t border-amber-200/60 pt-2">
+                    <span className="inline-flex items-center gap-1 font-mono-tech text-[9.5px] text-muted-foreground">
+                      <Clock className="h-2.5 w-2.5" />
+                      {elapsed !== null ? formatTime(elapsed) : "—"} berjalan
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700">
+                      Lanjutkan <ArrowRight className="h-3 w-3 transition-transform group-hover:translate-x-0.5" />
+                    </span>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ---------------------------------------------------------- history */}
       {history.length > 0 && (
@@ -444,12 +505,17 @@ function CaseCard({ item: c, recommended }: { item: CaseListItem; recommended: b
         </div>
 
         <div className="mt-3 flex flex-wrap items-center gap-1.5 text-[9.5px] font-semibold text-muted-foreground">
+          {c.activeAttemptId && (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-1 text-amber-700">
+              <RotateCcw className="h-2.5 w-2.5" /> misi berjalan
+            </span>
+          )}
           {c.tries > 0 && (
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-1 text-emerald-700">
               <CheckCircle2 className="h-2.5 w-2.5" /> {c.tries}× pernah benar
             </span>
           )}
-          {c.tries === 0 && !c.locked && (
+          {c.tries === 0 && !c.locked && !c.activeAttemptId && (
             <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-1">
               <Play className="h-2.5 w-2.5" /> belum dicoba
             </span>
@@ -463,19 +529,25 @@ function CaseCard({ item: c, recommended }: { item: CaseListItem; recommended: b
 
         <div className="mt-auto flex items-center justify-between border-t border-border/60 pt-3">
           <span className="text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
-            {c.locked ? "Terkunci" : "Siap dimainkan"}
+            {c.locked ? "Terkunci" : c.activeAttemptId ? "Misi berjalan" : "Siap dimainkan"}
           </span>
           <span
             className={cn(
               "inline-flex h-8 items-center gap-1 rounded-xl px-3 text-[11px] font-bold",
               c.locked
                 ? "bg-muted text-muted-foreground"
-                : "bg-slate-900 text-white transition-colors group-hover:bg-slate-800"
+                : c.activeAttemptId
+                  ? "bg-amber-500 text-slate-950 transition-colors group-hover:bg-amber-400"
+                  : "bg-slate-900 text-white transition-colors group-hover:bg-slate-800"
             )}
           >
             {c.locked ? (
               <>
                 <Lock className="h-3 w-3" /> Terkunci
+              </>
+            ) : c.activeAttemptId ? (
+              <>
+                Lanjutkan <RotateCcw className="h-3 w-3" />
               </>
             ) : (
               <>

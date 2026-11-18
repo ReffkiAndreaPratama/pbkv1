@@ -53,6 +53,8 @@ export interface CaseListItem {
   tries: number;
   urgency: number;
   tier: Tier;
+  activeAttemptId?: string | null;
+  activeStartedAt?: string | null;
 }
 
 export interface CaseOption {
@@ -86,6 +88,8 @@ export interface CaseDetail {
   targetSteps: number;
   expectedTimeSec: number;
   nodes: CaseNode[];
+  activeAttemptId?: string | null;
+  activeStartedAt?: string | null;
 }
 
 export interface SimNode {

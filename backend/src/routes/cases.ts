@@ -15,11 +15,23 @@ router.get("/", async (req: any, res) => {
   const allAttempts = await prisma.simulationAttempt.groupBy({ by: ["caseId"], where: { userId, success: true }, _count: true });
   allAttempts.forEach((a) => attemptsMap.set(a.caseId, a._count));
 
+  // Satu misi berjalan per kasus; ambil yang paling baru agar bisa dilanjutkan.
+  const activeRows = await prisma.simulationAttempt.findMany({
+    where: { userId, status: "IN_PROGRESS" },
+    orderBy: { startedAt: "desc" },
+    select: { id: true, caseId: true, startedAt: true },
+  });
+  const activeMap = new Map<string, { id: string; startedAt: Date }>();
+  for (const a of activeRows) {
+    if (!activeMap.has(a.caseId)) activeMap.set(a.caseId, { id: a.id, startedAt: a.startedAt });
+  }
+
   const result = cases.map((c) => {
     const m = mastery.get(c.skill.code)!;
     const cap = allowedDifficulty(m.mastery);
     const locked = c.difficulty === "HARD" && m.mastery < 0.4 || (c.difficulty === "MEDIUM" && m.mastery < 0.25);
     const tries = attemptsMap.get(c.id) ?? 0;
+    const active = activeMap.get(c.id) ?? null;
     const priority = (req.user as any).profile?.skillPriority?.includes(c.skill.code) ? 1 : 0;
     const gap = 1 - m.mastery;
     const urgency = Math.round(gap * 60 + (tries === 0 ? 15 : 5) + priority * 25);
@@ -33,6 +45,8 @@ router.get("/", async (req: any, res) => {
       tries,
       urgency,
       tier: tierOf(m.mastery),
+      activeAttemptId: active?.id ?? null,
+      activeStartedAt: active?.startedAt ?? null,
     };
   });
   result.sort((a, b) => b.urgency - a.urgency);
@@ -80,6 +94,11 @@ router.get("/:id", async (req: any, res) => {
       feedbackText: o.feedbackText ?? null,
     })),
   }));
+  const active = await prisma.simulationAttempt.findFirst({
+    where: { userId: req.user!.id, caseId: c.id, status: "IN_PROGRESS" },
+    orderBy: { startedAt: "desc" },
+    select: { id: true, startedAt: true },
+  });
   res.json({
     id: c.id,
     title: c.title,
@@ -89,6 +108,8 @@ router.get("/:id", async (req: any, res) => {
     targetSteps: c.targetSteps,
     expectedTimeSec: c.expectedTimeSec,
     nodes,
+    activeAttemptId: active?.id ?? null,
+    activeStartedAt: active?.startedAt ?? null,
   });
 });
 
@@ -99,11 +120,25 @@ router.post("/:id/start", async (req: any, res) => {
   if (!caseItem) { res.status(404).json({ error: "Case not found." }); return; }
   const startNode = caseItem.nodes.find((n) => n.type === "START");
   if (!startNode) { res.status(500).json({ error: "Case has no START node." }); return; }
+
+  // Lanjutkan misi yang masih berjalan, kecuali pemain meminta attempt baru.
+  const fresh = req.body?.fresh === true;
+  if (!fresh) {
+    const existing = await prisma.simulationAttempt.findFirst({
+      where: { userId, caseId: caseItem.id, status: "IN_PROGRESS" },
+      orderBy: { startedAt: "desc" },
+    });
+    if (existing) {
+      res.json({ attemptId: existing.id, resumed: true });
+      return;
+    }
+  }
+
   await touchStreak(userId);
   const attempt = await prisma.simulationAttempt.create({
     data: { userId, caseId: caseItem.id, signalState: {} },
   });
-  res.status(201).json({ attemptId: attempt.id, currentNode: { nodeKey: startNode.nodeKey, type: startNode.type, text: startNode.text, detail: startNode.detail }, signalState: {} });
+  res.status(201).json({ attemptId: attempt.id, resumed: false, currentNode: { nodeKey: startNode.nodeKey, type: startNode.type, text: startNode.text, detail: startNode.detail }, signalState: {} });
 });
 
 export default router;

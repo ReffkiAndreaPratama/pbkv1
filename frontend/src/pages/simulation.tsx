@@ -160,7 +160,7 @@ export function SimulationPage() {
     }
     setLoading(true);
     try {
-      const res = await api.post<{ attemptId: string }>(`/api/cases/${caseId}/start`);
+      const res = await api.post<{ attemptId: string }>(`/api/cases/${caseId}/start`, { fresh: true });
       setNode(null);
       setResult(null);
       setCompleted(null);

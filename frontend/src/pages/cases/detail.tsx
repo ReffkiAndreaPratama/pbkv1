@@ -10,6 +10,7 @@ import {
   ListOrdered,
   MonitorCog,
   Play,
+  RotateCcw,
   Route,
   ShieldAlert,
   Sparkles,
@@ -20,7 +21,7 @@ import {
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import { PageLoader } from "@/components/ui/feedback";
-import { difficultyColor, difficultyLabel, cn } from "@/lib/utils";
+import { difficultyColor, difficultyLabel, cn, formatTime } from "@/lib/utils";
 import { skillImageUrl } from "@/lib/skill-media";
 import type { CaseDetail, CaseListItem, Difficulty } from "@/lib/types";
 
@@ -73,6 +74,10 @@ export function CaseDetailPage() {
 
   const bestPath = caseDetail.nodes.filter((n) => n.isOnBestPath);
   const active = user?.profile?.pretestDone;
+  const inProgress = !!caseDetail.activeAttemptId;
+  const activeElapsed = caseDetail.activeStartedAt
+    ? Math.max(0, Math.round((Date.now() - new Date(caseDetail.activeStartedAt).getTime()) / 1000))
+    : null;
   const minutes = Math.max(1, Math.round(caseDetail.expectedTimeSec / 60));
 
   return (
@@ -129,7 +134,8 @@ export function CaseDetailPage() {
                   disabled={starting}
                   className="inline-flex h-10 items-center gap-2 rounded-xl bg-emerald-500 px-5 text-xs font-bold text-slate-950 transition-colors hover:bg-emerald-400 disabled:opacity-70"
                 >
-                  <Play className="h-4 w-4" /> {starting ? "Menyiapkan…" : "Mulai simulasi"}
+                  {inProgress ? <RotateCcw className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                  {starting ? "Menyiapkan…" : inProgress ? "Lanjutkan misi" : "Mulai simulasi"}
                 </button>
                 <Link
                   to="/cases"
@@ -181,6 +187,33 @@ export function CaseDetailPage() {
               </Link>
             </p>
           </div>
+        </div>
+      )}
+
+      {inProgress && (
+        <div className="flex items-start gap-3 rounded-2xl border border-emerald-300/60 bg-emerald-50 p-4 text-emerald-900">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200">
+            <RotateCcw className="h-4 w-4" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2 text-[11.5px] font-bold">
+              Misi ini sedang berjalan
+              {activeElapsed !== null && (
+                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 font-mono-tech text-[9px] font-bold text-emerald-700">
+                  {formatTime(activeElapsed)}
+                </span>
+              )}
+            </div>
+            <p className="mt-0.5 text-[11px] leading-relaxed text-emerald-800">
+              Langkah dan sinyalmu tersimpan. Lanjutkan dari langkah terakhir tanpa mengulang dari awal.
+            </p>
+          </div>
+          <Link
+            to={`/simulation/${caseDetail.activeAttemptId}`}
+            className="hidden shrink-0 items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-[10.5px] font-bold text-white transition-colors hover:bg-emerald-500 sm:inline-flex"
+          >
+            Lanjutkan <ArrowRight className="h-3 w-3" />
+          </Link>
         </div>
       )}
 
@@ -402,7 +435,7 @@ export function CaseDetailPage() {
               className="mt-3 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl bg-slate-900 text-[11px] font-bold text-white transition-colors hover:bg-slate-800 disabled:opacity-70"
             >
               <Sparkles className="h-3.5 w-3.5 text-amber-300" />
-              {starting ? "Menyiapkan…" : "Mulai sekarang"}
+              {starting ? "Menyiapkan…" : inProgress ? "Lanjutkan misi" : "Mulai sekarang"}
             </button>
           </section>
         </aside>
