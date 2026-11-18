@@ -51,6 +51,10 @@ export interface CaseListItem {
   targetSteps: number;
   locked: boolean;
   tries: number;
+  attempts?: number;
+  bestScore?: number | null;
+  bestGrade?: string | null;
+  bestStars?: number | null;
   urgency: number;
   tier: Tier;
   activeAttemptId?: string | null;

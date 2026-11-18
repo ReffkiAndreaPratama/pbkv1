@@ -11,6 +11,7 @@ import {
   Search,
   ShieldAlert,
   Sparkles,
+  Star,
   TrendingUp,
   X,
   type LucideIcon,
@@ -64,6 +65,7 @@ export function CasesPage() {
       open: list.filter((c) => !c.locked).length,
       locked: list.filter((c) => c.locked).length,
       tries: list.reduce((sum, c) => sum + c.tries, 0),
+      attempts: list.reduce((sum, c) => sum + (c.attempts ?? c.tries), 0),
       solved: list.filter((c) => c.tries > 0).length,
     };
   }, [cases]);
@@ -87,7 +89,7 @@ export function CasesPage() {
       (!q || c.title.toLowerCase().includes(q) || c.skill.name.toLowerCase().includes(q))
   );
   const recommended =
-    visible.find((c) => !c.locked && c.tries === 0) ?? visible.find((c) => !c.locked) ?? null;
+    visible.find((c) => !c.locked && (c.attempts ?? 0) === 0) ?? visible.find((c) => !c.locked) ?? null;
   const jalur = getJalur();
   const openPct = stats.total ? Math.round((stats.open / stats.total) * 100) : 0;
   const activeCases = cases.filter((c) => c.activeAttemptId && !c.locked);
@@ -178,7 +180,7 @@ export function CasesPage() {
               <div className="mt-4 grid grid-cols-2 gap-2.5">
                 <div className="rounded-xl border border-white/10 bg-slate-950/30 px-3 py-2">
                   <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-slate-500">Percobaan</div>
-                  <div className="mt-0.5 font-display text-base font-extrabold text-sky-300">{stats.tries}</div>
+                  <div className="mt-0.5 font-display text-base font-extrabold text-sky-300">{stats.attempts}</div>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-slate-950/30 px-3 py-2">
                   <div className="font-mono-tech text-[8.5px] uppercase tracking-[0.14em] text-slate-500">Pernah benar</div>
@@ -199,7 +201,7 @@ export function CasesPage() {
         <QuickStat icon={ShieldAlert} label="Total kasus" value={`${stats.total}`} hint="skenario tersedia" tone="violet" />
         <QuickStat icon={Play} label="Terbuka" value={`${stats.open}`} hint="bisa dimainkan" tone="emerald" />
         <QuickStat icon={Lock} label="Terkunci" value={`${stats.locked}`} hint="naikkan mastery" tone="amber" />
-        <QuickStat icon={TrendingUp} label="Percobaan" value={`${stats.tries}`} hint={`${stats.solved} kasus pernah benar`} tone="blue" />
+        <QuickStat icon={TrendingUp} label="Percobaan" value={`${stats.attempts}`} hint={`${stats.solved} kasus pernah benar`} tone="blue" />
       </section>
 
       {/* ---------------------------------------------------------- resume */}
@@ -534,12 +536,24 @@ function CaseCard({ item: c, recommended }: { item: CaseListItem; recommended: b
               <RotateCcw className="h-2.5 w-2.5" /> misi berjalan
             </span>
           )}
-          {c.tries > 0 && (
+          {c.bestScore != null ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-1 text-amber-700">
+              <Star className="h-2.5 w-2.5 fill-amber-400 text-amber-400" />
+              <span className="font-mono-tech font-bold">
+                {c.bestGrade} · {Math.round(c.bestScore)}
+              </span>
+              rekor
+            </span>
+          ) : c.tries > 0 ? (
             <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-1.5 py-1 text-emerald-700">
               <CheckCircle2 className="h-2.5 w-2.5" /> {c.tries}× pernah benar
             </span>
-          )}
-          {c.tries === 0 && !c.locked && !c.activeAttemptId && (
+          ) : (c.attempts ?? 0) > 0 ? (
+            <span className="inline-flex items-center gap-1 rounded-md bg-rose-50 px-1.5 py-1 text-rose-700">
+              <ShieldAlert className="h-2.5 w-2.5" /> {c.attempts}× belum tuntas
+            </span>
+          ) : null}
+          {c.bestScore == null && (c.attempts ?? 0) === 0 && !c.locked && !c.activeAttemptId && (
             <span className="inline-flex items-center gap-1 rounded-md bg-muted px-1.5 py-1">
               <Play className="h-2.5 w-2.5" /> belum dicoba
             </span>

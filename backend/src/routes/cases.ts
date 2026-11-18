@@ -16,6 +16,24 @@ router.get("/", async (req: any, res) => {
   const allAttempts = await prisma.simulationAttempt.groupBy({ by: ["caseId"], where: { userId, success: true }, _count: true });
   allAttempts.forEach((a) => attemptsMap.set(a.caseId, a._count));
 
+  const bestRows = await prisma.simulationAttempt.groupBy({
+    by: ["caseId"],
+    where: { userId, score: { not: null }, status: { not: "ABANDONED" } },
+    _max: { score: true },
+  });
+  const bestMap = new Map<string, number>();
+  for (const r of bestRows) {
+    if (r._max.score != null) bestMap.set(r.caseId, r._max.score);
+  }
+
+  const totalRows = await prisma.simulationAttempt.groupBy({
+    by: ["caseId"],
+    where: { userId, status: { not: "IN_PROGRESS" } },
+    _count: true,
+  });
+  const totalMap = new Map<string, number>();
+  for (const r of totalRows) totalMap.set(r.caseId, r._count);
+
   // Satu misi berjalan per kasus; ambil yang paling baru agar bisa dilanjutkan.
   const activeRows = await prisma.simulationAttempt.findMany({
     where: { userId, status: "IN_PROGRESS" },
@@ -33,6 +51,7 @@ router.get("/", async (req: any, res) => {
     const locked = c.difficulty === "HARD" && m.mastery < 0.4 || (c.difficulty === "MEDIUM" && m.mastery < 0.25);
     const tries = attemptsMap.get(c.id) ?? 0;
     const active = activeMap.get(c.id) ?? null;
+    const bestScore = bestMap.get(c.id) ?? null;
     const priority = (req.user as any).profile?.skillPriority?.includes(c.skill.code) ? 1 : 0;
     const gap = 1 - m.mastery;
     const urgency = Math.round(gap * 60 + (tries === 0 ? 15 : 5) + priority * 25);
@@ -44,6 +63,10 @@ router.get("/", async (req: any, res) => {
       targetSteps: c.targetSteps,
       locked,
       tries,
+      attempts: totalMap.get(c.id) ?? 0,
+      bestScore,
+      bestGrade: bestScore != null ? gradeOf(bestScore) : null,
+      bestStars: bestScore != null ? starsOf(bestScore) : null,
       urgency,
       tier: tierOf(m.mastery),
       activeAttemptId: active?.id ?? null,
@@ -121,7 +144,7 @@ router.get("/:id", async (req: any, res) => {
     }),
   ]);
 
-  const scored = pastAttempts.filter((a) => a.score !== null);
+  const scored = pastAttempts.filter((a) => a.score !== null && a.status !== "ABANDONED");
   let best: (typeof pastAttempts)[number] | null = null;
   for (const a of scored) {
     if (!best || (a.score ?? 0) > (best.score ?? 0)) best = a;
